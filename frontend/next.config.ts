@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: 'ajobi-643447426952.europe-west1.run.app',
       },
+      {
+        protocol: 'https',
+        hostname: 'storage.url',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.freepik.com',
+      }
     ],
   },
 };

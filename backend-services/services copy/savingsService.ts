@@ -27,22 +27,22 @@ export interface SavingsActivity {
 
 export const savingsService = {
   getOverview: async () => {
-    // const response = await apiClient.get('/api/savings/overview');
-    return { success: true, data: { total_saved: 50000, active_goals: 2, total_interest: 1500 } };
+    const response = await apiClient.get('/api/savings/overview');
+    return response.data;
   },
 
   getGoals: async () => {
-    // const response = await apiClient.get('/api/savings/goals');
-    return { success: true, data: [] };
+    const response = await apiClient.get('/api/savings/goals');
+    return response.data;
   },
 
   getAutomationRules: async () => {
-    // const response = await apiClient.get('/api/savings/automation-rules');
-    return { success: true, data: [] };
+    const response = await apiClient.get('/api/savings/automation-rules');
+    return response.data;
   },
 
   getActivity: async () => {
-    // const response = await apiClient.get('/api/savings/activity');
-    return { success: true, data: [] };
+    const response = await apiClient.get('/api/savings/activity');
+    return response.data;
   }
 };

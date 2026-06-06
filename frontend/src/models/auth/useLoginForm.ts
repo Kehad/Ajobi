@@ -46,11 +46,15 @@ export const useLoginForm = () => {
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     try {
+      localStorage.clear();
       const response = await dispatch(loginUser(data)).unwrap();
       console.log("Login successful:", response);
 
-      sessionStorage.setItem("userId", response.data.user_id);
-      sessionStorage.setItem("email", response.data.email);
+      // const response.data 
+
+      localStorage.setItem("userId", response.data.user_id);
+      localStorage.setItem("email", response.data.email);
+      localStorage.setItem("user", JSON.stringify(response.data));
       
       if (response.data.onboarding_complete === "false" || response.data.onboarding_complete === false) {
         router.push("/setup");

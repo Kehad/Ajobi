@@ -55,63 +55,79 @@ export interface RegisterResponse {
 }
 
 export const authService = {
-  /**
-   * Submits user credentials to authenticate and retrieves a Bearer token.
-   */
   login: async (credentials: any): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/api/auth/login', {
-      email: credentials.email, 
-      password: credentials.password
-    });
-    console.log(response.data);
-
-    if (response.data?.success && response.data?.data?.token) {
-      localStorage.setItem('token', response.data.data.token);
-      localStorage.setItem('userId', response.data.data.user_id);
-    }
-
-    return response.data;
-  },
-
-  /**
-   * Registers a new user account and retrieves a Bearer token.
-   */
-  register: async (data: RegistrationFormValues): Promise<RegisterResponse> => {
-    const payload: any = {
-      full_name: data.fullName,
-      phone: data.phoneNumber,
-      password: data.password,
-      email: data.email,
+    // const response = await apiClient.post<LoginResponse>('/api/auth/login', ...);
+    const response = {
+      success: true,
+      data: {
+        user_id: "usr_a1b2c3d4",
+        full_name: "Emeka Obi",
+        token: "eyJhbGciOiJIUzI1NiJ9...",
+        email: credentials.email || "emeka@email.com",
+        ajo_score: 68,
+        score_tier: "Silver",
+        onboarding_complete: true
+      }
     };
 
-    const response = await apiClient.post<RegisterResponse>('/api/auth/register', payload);
-
-    if (response.data?.success && response.data?.data?.token) {
-      localStorage.setItem('token', response.data.data.token);
+    if (response.success && response.data?.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userId', response.data.user_id);
     }
-
-    return response.data;
+    return response as LoginResponse;
   },
 
-  /**
-   * Retrieves the current authenticated user profile.
-   */
+  register: async (data: RegistrationFormValues): Promise<RegisterResponse> => {
+    // const response = await apiClient.post<RegisterResponse>('/api/auth/register', payload);
+    const response = {
+      success: true,
+      data: {
+        user_id: "usr_a1b2c3d4",
+        full_name: "Emeka Obi",
+        phone: "08012345678",
+        token: "eyJhbGciOiJIUzI1NiJ9...",
+        onboarding_complete: false
+      }
+    };
+
+    if (response.success && response.data?.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response as RegisterResponse;
+  },
+
   getCurrentUser: async (): Promise<{ success: boolean; data: UserData }> => {
-    const response = await apiClient.get('/api/auth/me');
-    return response.data;
+    // const response = await apiClient.get('/api/auth/me');
+    return {
+      success: true,
+      data: {
+        user_id: "usr_a1b2c3d4",
+        full_name: "Emeka Obi",
+        phone: "08012345678",
+        email: "emeka@email.com",
+        occupation: "Trader",
+        state: "Lagos",
+        lga: "Surulere",
+        language: "English",
+        ajo_score: 68,
+        score_tier: "Silver",
+        profile_photo: "https://storage.url/photo.jpg",
+        onboarding_complete: true,
+        member_since: "2024-01-15T00:00:00Z",
+        squad_wallet_balance: 45000
+      }
+    };
   },
   
-  /**
-   * Cleans up local session data and terminates the backend session.
-   */
   logout: async () => {
     if (typeof window !== 'undefined') {
       try {
-        await apiClient.post('/api/logout');
+        // await apiClient.post('/api/logout');
       } catch (e) {
         console.error("Logout failed on server", e);
       }
       localStorage.removeItem('token');
+      localStorage.removeItem('userId');
     }
   }
 };

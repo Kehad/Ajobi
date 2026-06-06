@@ -19,12 +19,12 @@ export interface VirtualAccountResponse {
 
 export const userService = {
   updateKYC: async (data: KYCData): Promise<KYCResponse> => {
-    // const response = await apiClient.post<KYCResponse>('/api/user/kyc', data);
-    return { success: "true", message: "KYC updated successfully" };
+    const response = await apiClient.post<KYCResponse>('/api/user/kyc', data);
+    return response.data;
   },
 
   createVirtualAccount: async (userId: string | number): Promise<VirtualAccountResponse> => {
-    // const response = await apiClient.post<VirtualAccountResponse>('/api/user/virtualaccounts', { user_id: userId });
-    return { status: "success", data: { account_number: "0123456789", bank_name: "Mock Bank" } };
+    const response = await apiClient.post<VirtualAccountResponse>('/api/user/virtualaccounts', { user_id: userId });
+    return response.data;
   }
 };

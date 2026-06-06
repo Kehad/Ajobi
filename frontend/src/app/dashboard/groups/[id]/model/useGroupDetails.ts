@@ -35,7 +35,8 @@ export const useGroupDetails = (groupId: string) => {
     currentCycle: 0,
     totalCycles: 0,
     nextDisbursement: "",
-    onTimeRate: "0%"
+    onTimeRate: "0%",
+    inviteCode: ""
   });
 
   const [rotationTimeline, setRotationTimeline] = useState<any[]>([]);
@@ -71,6 +72,7 @@ export const useGroupDetails = (groupId: string) => {
       try {
         // 1. Fetch Core Detailed Payload
         const detResp = await groupsService.getGroupDetail(groupId);
+        console.log("details", detResp);
         if (detResp.success && detResp.data) {
           const data = detResp.data;
           setGroupInfo({
@@ -81,7 +83,8 @@ export const useGroupDetails = (groupId: string) => {
             currentCycle: data.current_cycle,
             totalCycles: data.total_cycles,
             nextDisbursement: `₦${data.next_disbursement_amount?.toLocaleString() || (data.contribution_amount * data.rotation?.length)} on ${new Date(data.next_disbursement_date).toLocaleDateString()}`,
-            onTimeRate: "100%"
+            onTimeRate: "100%",
+            inviteCode: data.invitecode || ""
           });
 
           // Map the rotation timeline avatars
@@ -223,7 +226,7 @@ export const useGroupDetails = (groupId: string) => {
     try {
       const resultAction = await dispatch(joinGroupThunk({ 
         groupId, 
-        payload: { invite_code: inviteCode || "" } 
+        payload: { invite_code: inviteCode || groupInfo.inviteCode || "" } 
       }));
       
       if (joinGroupThunk.fulfilled.match(resultAction)) {

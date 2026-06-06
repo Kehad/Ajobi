@@ -27,8 +27,21 @@ export const useSetupWizard = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   const [scoreData, setScoreData] = useState<SetupFinalResponse['data'] | null>(null);
-  const user = useAppSelector((state) => state.auth.user);
-  const userId = user?.user_id;
+  const authUser = useAppSelector((state) => state.auth.user);
+  let user = authUser;
+
+  if (!user && typeof window !== 'undefined') {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        user = JSON.parse(storedUser);
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+      }
+    }
+  }
+
+  const userId = user?.user_id || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
   const email = user?.email;
   console.log("email", email)
   console.log("user", user)

@@ -1,0 +1,1651 @@
+AjoBI — API Contract Document
+For Frontend & Backend Teams to Work Independently
+How to Use This Document
+Backend team:
+ Build endpoints to match these exact request and response shapes. Do not change field names.
+Frontend team:
+ Build UI and API calls against these exact shapes. Use the base URL once backend deploys. Until then use mock data that matches these exact response shapes.
+Base URL:
+ 
+https://ajobi-production.up.railway.app
+Authentication:
+ All endpoints except Register and Login require:
+Headers:
+  Authorization: Bearer <token>
+  Content-Type: application/json
+Standard Error Response (all endpoints):
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Token is invalid or expired"
+  }
+}
+Standard Success Wrapper:
+{
+  "success": true,
+  "data": { }
+}
+STAGE 1 — AUTHENTICATION
+Register
+POST /api/auth/register
+Auth required: No
+Request Body:
+{
+  "full_name": "Emeka Obi",
+  "phone": "08012345678",
+  "email": "emeka@email.com",
+  "password": "secret123"
+}
+Validation Rules (Frontend shows these errors):
+full_name   → required, min 2 characters
+phone       → required, valid Nigerian number, unique
+email       → optional, valid email format if provided
+password    → required, min 6 characters
+Success Response — 201:
+{
+  "success": true,
+  "data": {
+    "user_id": "usr_a1b2c3d4",
+    "full_name": "Emeka Obi",
+    "phone": "08012345678",
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "onboarding_complete": false
+  }
+}
+Error Responses:
+{ "error": { "code": "PHONE_EXISTS", 
+             "message": "An account with this phone number already exists" } }
+{ "error": { "code": "VALIDATION_ERROR", 
+             "message": "Phone number is not valid" } }
+Login
+POST /api/auth/login
+Auth required: No
+Request Body:
+{
+  "phone": "08012345678",
+  "password": "secret123"
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "user_id": "usr_a1b2c3d4",
+    "full_name": "Emeka Obi",
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "ajo_score": 68,
+    "score_tier": "Silver",
+    "onboarding_complete": true
+  }
+}
+Frontend Logic:
+if onboarding_complete === false → redirect to /onboarding
+if onboarding_complete === true  → redirect to /dashboard
+Error Responses:
+{ "error": { "code": "INVALID_CREDENTIALS", 
+             "message": "Phone number or password is incorrect" } }
+{ "error": { "code": "ACCOUNT_SUSPENDED", 
+             "message": "Your account has been suspended" } }
+Get Current User
+GET /api/auth/me
+Auth required: Yes
+No Request Body
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "user_id": "usr_a1b2c3d4",
+    "full_name": "Emeka Obi",
+    "phone": "08012345678",
+    "email": "emeka@email.com",
+    "occupation": "Trader",
+    "state": "Lagos",
+    "lga": "Surulere",
+    "language": "English",
+    "ajo_score": 68,
+    "score_tier": "Silver",
+    "profile_photo": "https://storage.url/photo.jpg",
+    "onboarding_complete": true,
+    "member_since": "2024-01-15T00:00:00Z",
+    "squad_wallet_balance": 45000
+  }
+}
+STAGE 2 — ONBOARDING
+Five steps. Each step submits independently so progress is saved if user drops off.
+Submit Onboarding Step 1 — Who Are You
+POST /api/onboarding/step1
+Auth required: Yes
+Request Body:
+{
+  "occupation": "Trader"
+}
+Occupation options (frontend renders these):
+Trader / Market Seller
+Artisan / Craftsperson
+Service Provider
+Job Seeker
+Farmer
+Other
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "step_completed": 1,
+    "next_step": 2
+  }
+}
+Submit Onboarding Step 2 — Your Work
+POST /api/onboarding/step2
+Auth required: Yes
+Request Body:
+{
+  "trade_duration": "1-3 years",
+  "state": "Lagos",
+  "lga": "Surulere",
+  "income_range": "20000-50000"
+}
+Field Options:
+trade_duration:
+  "less than 1 year"
+  "1-3 years"
+  "3-5 years"
+  "5+ years"
+income_range (weekly):
+  "below 5000"
+  "5000-20000"
+  "20000-50000"
+  "50000-100000"
+  "above 100000"
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "step_completed": 2,
+    "next_step": 3
+  }
+}
+Submit Onboarding Step 3 — Savings Habits
+POST /api/onboarding/step3
+Auth required: Yes
+Request Body:
+{
+  "saves_money": true,
+  "savings_methods": ["Ajo/Esusu group", "Bank"],
+  "in_ajo_group": true,
+  "contribution_consistency": "Always on time"
+}
+Field Options:
+savings_methods (multi-select):
+  "Bank"
+  "Ajo/Esusu group"
+  "Cash at home"
+  "Mobile money"
+contribution_consistency:
+  "Always on time"
+  "Sometimes late"
+  "Often late"
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "step_completed": 3,
+    "next_step": 4
+  }
+}
+Submit Onboarding Step 4 — Credit History
+POST /api/onboarding/step4
+Auth required: Yes
+Request Body:
+{
+  "has_borrowed": true,
+  "repaid_fully": true,
+  "repaid_on_time": true
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "step_completed": 4,
+    "next_step": 5
+  }
+}
+Submit Onboarding Step 5 — Language & Finish
+POST /api/onboarding/step5
+Auth required: Yes
+Request Body:
+{
+  "language": "English",
+  "profile_photo": "base64_string_or_null"
+}
+Language options:
+English
+Pidgin
+Yoruba
+Hausa
+Igbo
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "onboarding_complete": true,
+    "ajo_score": 58,
+    "score_tier": "Bronze",
+    "breakdown": {
+      "savings_consistency": 75,
+      "repayment_behaviour": 60,
+      "escrow_completion": 50,
+      "transaction_history": 30,
+      "account_maturity": 20,
+      "community_standing": 50
+    },
+    "explanation": "Your score is 58. Strong savings habits detected. Score is limited by no transaction history yet. Join an Ajo group and start transacting to grow faster.",
+    "improvement_tips": [
+      "Join an Ajo group and contribute consistently",
+      "Complete your first escrow transaction",
+      "Refer a friend to earn +3 points"
+    ]
+  }
+}
+Frontend Logic after this response:
+Show score reveal animation
+Count up to final score number
+Display tier badge
+Show explanation
+Show improvement tips
+Show Continue to Dashboard button
+Get Onboarding Progress
+GET /api/onboarding/progress
+Auth required: Yes
+No Request Body
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "steps_completed": [1, 2, 3],
+    "current_step": 4,
+    "onboarding_complete": false
+  }
+}
+Frontend Logic:
+On page load check this endpoint
+Resume from current_step if user dropped off
+STAGE 3 — AJOSCORE
+Get AjoScore
+GET /api/score/:userId
+Auth required: Yes
+No Request Body
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "score": 68,
+    "tier": "Silver",
+    "tier_color": "#C0C0C0",
+    "next_tier": "Gold",
+    "points_to_next_tier": 8,
+    "breakdown": {
+      "savings_consistency": {
+        "score": 82,
+        "weight": 0.25,
+        "label": "Savings Consistency",
+        "explanation": "You have contributed on time in 9 of 11 cycles"
+      },
+      "repayment_behaviour": {
+        "score": 50,
+        "weight": 0.25,
+        "label": "Repayment Behaviour",
+        "explanation": "No loan history yet. Take and repay a loan to improve this."
+      },
+      "escrow_completion": {
+        "score": 90,
+        "weight": 0.20,
+        "label": "Escrow Completion",
+        "explanation": "All your escrows completed without dispute"
+      },
+      "transaction_history": {
+        "score": 45,
+        "weight": 0.15,
+        "label": "Transaction History",
+        "explanation": "Transact more through AjoBI to improve this component"
+      },
+      "account_maturity": {
+        "score": 60,
+        "weight": 0.10,
+        "label": "Account Maturity",
+        "explanation": "Account is 3 months old. Score grows with time."
+      },
+      "community_standing": {
+        "score": 70,
+        "weight": 0.05,
+        "label": "Community Standing",
+        "explanation": "2 successful referrals. No disputes raised against you."
+      }
+    },
+    "unlocked_features": [
+      "ajo_groups_bronze",
+      "marketplace_browse",
+      "escrow_basic",
+      "instalment_escrow"
+    ],
+    "locked_features": [
+      {
+        "feature": "loans",
+        "required_score": 61,
+        "current_score": 68,
+        "unlocked": true
+      },
+      {
+        "feature": "premium_groups",
+        "required_score": 76,
+        "current_score": 68,
+        "unlocked": false,
+        "points_needed": 8
+      }
+    ],
+    "improvement_tips": [
+      "Your repayment behaviour has the most room to grow. Apply for a small loan and repay on time.",
+      "Increase your transaction history by making more purchases through the marketplace."
+    ]
+  }
+}
+Get Score History
+GET /api/score/:userId/history
+Auth required: Yes
+Query params: ?days=30 (options: 30, 60, 90)
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "period_days": 30,
+    "history": [
+      { "date": "2024-05-01", "score": 55 },
+      { "date": "2024-05-08", "score": 57 },
+      { "date": "2024-05-15", "score": 62 },
+      { "date": "2024-05-22", "score": 65 },
+      { "date": "2024-05-29", "score": 68 }
+    ]
+  }
+}
+Get Score Events Log
+GET /api/score/:userId/events
+Auth required: Yes
+Query params: ?limit=20&offset=0
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "events": [
+      {
+        "event_id": "evt_001",
+        "event_type": "contribution_on_time",
+        "points": 2,
+        "direction": "up",
+        "reason": "On-time contribution to Sunshine Group",
+        "created_at": "2024-05-29T10:00:00Z"
+      },
+      {
+        "event_id": "evt_002",
+        "event_type": "escrow_completed",
+        "points": 5,
+        "direction": "up",
+        "reason": "Escrow completed without dispute — Logo Design Job",
+        "created_at": "2024-05-25T14:30:00Z"
+      },
+      {
+        "event_id": "evt_003",
+        "event_type": "contribution_missed",
+        "points": -5,
+        "direction": "down",
+        "reason": "Missed contribution — Market Women Group",
+        "created_at": "2024-05-20T09:00:00Z"
+      }
+    ],
+    "total": 45,
+    "limit": 20,
+    "offset": 0
+  }
+}
+Get Feature Eligibility
+GET /api/score/:userId/eligibility
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "loan_eligible": false,
+    "loan_conditions": {
+      "score_met": { "required": 61, "current": 68, "passed": true },
+      "tenure_met": { "required_days": 60, "current_days": 34, 
+                      "passed": false, "days_remaining": 26 },
+      "ajo_member": { "passed": true },
+      "consistency_met": { "required_percent": 80, 
+                           "current_percent": 81, "passed": true },
+      "no_disputes": { "passed": true },
+      "no_default": { "passed": true }
+    },
+    "loan_eligibility_message": "You qualify on 5 of 6 conditions. Stay active for 26 more days to unlock your loan offer.",
+    "group_tiers_available": ["Starter", "Bronze"],
+    "escrow_eligible": true,
+    "instalment_eligible": true,
+    "insurance_eligible": false
+  }
+}
+STAGE 4 — AJO GROUPS
+Create Group
+POST /api/groups
+Auth required: Yes
+Request Body:
+{
+  "name": "Sunshine Traders Group",
+  "contribution_amount": 10000,
+  "frequency": "weekly",
+  "max_members": 10,
+  "min_ajo_score": 55,
+  "rotation_type": "random",
+  "grace_period_hours": 24,
+  "description": "Weekly savings group for Balogun market traders"
+}
+Field Options:
+frequency:        "weekly" | "monthly"
+rotation_type:    "random" | "manual"
+grace_period_hours: 24 | 48
+max_members:      5 to 20
+min_ajo_score:    40 to 100
+Success Response — 201:
+{
+  "success": true,
+  "data": {
+    "group_id": "grp_x1y2z3",
+    "name": "Sunshine Traders Group",
+    "invite_link": "https://ajobi.app/groups/join/grp_x1y2z3",
+    "invite_code": "SUN-2024",
+    "status": "awaiting_members",
+    "created_at": "2024-05-29T10:00:00Z"
+  }
+}
+Browse Groups
+GET /api/groups
+Auth required: Yes
+Query params: ?frequency=weekly&min_amount=5000&max_amount=50000&page=1&limit=10
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "groups": [
+      {
+        "group_id": "grp_x1y2z3",
+        "name": "Sunshine Traders Group",
+        "contribution_amount": 10000,
+        "frequency": "weekly",
+        "current_members": 7,
+        "max_members": 10,
+        "min_ajo_score": 55,
+        "creator_name": "Mama Ngozi",
+        "creator_score": 74,
+        "spots_remaining": 3,
+        "next_contribution_date": "2024-06-05T00:00:00Z",
+        "tier": "Bronze",
+        "locked": false
+      }
+    ],
+    "total": 24,
+    "page": 1,
+    "limit": 10
+  }
+}
+Frontend Logic:
+if group.locked === true → show lock icon, show score required
+if group.locked === false → show Join button
+Get My Groups
+GET /api/groups/my
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "groups": [
+      {
+        "group_id": "grp_x1y2z3",
+        "name": "Sunshine Traders Group",
+        "contribution_amount": 10000,
+        "frequency": "weekly",
+        "my_rotation_position": 4,
+        "my_contribution_status": "paid",
+        "next_contribution_date": "2024-06-05T00:00:00Z",
+        "next_recipient": "Bola Adeyemi",
+        "my_payout_date": "2024-07-03T00:00:00Z",
+        "my_payout_amount": 100000,
+        "current_cycle": 3,
+        "total_cycles": 10,
+        "direct_debit_active": true
+      }
+    ]
+  }
+}
+Get Group Detail
+GET /api/groups/:groupId
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "group_id": "grp_x1y2z3",
+    "name": "Sunshine Traders Group",
+    "contribution_amount": 10000,
+    "frequency": "weekly",
+    "status": "active",
+    "current_cycle": 3,
+    "total_cycles": 10,
+    "next_contribution_date": "2024-06-05T00:00:00Z",
+    "next_disbursement_date": "2024-06-05T00:00:00Z",
+    "next_disbursement_amount": 100000,
+    "rotation": [
+      {
+        "position": 1,
+        "user_id": "usr_001",
+        "name": "Mama Ngozi",
+        "ajo_score": 74,
+        "has_received": true,
+        "received_date": "2024-04-10T00:00:00Z"
+      },
+      {
+        "position": 2,
+        "user_id": "usr_002",
+        "name": "Bola Adeyemi",
+        "ajo_score": 68,
+        "has_received": false,
+        "is_next": true
+      },
+      {
+        "position": 3,
+        "user_id": "usr_003",
+        "name": "Emeka Obi",
+        "ajo_score": 71,
+        "has_received": false,
+        "is_next": false
+      }
+    ],
+    "this_cycle_contributions": [
+      {
+        "user_id": "usr_001",
+        "name": "Mama Ngozi",
+        "status": "paid",
+        "paid_at": "2024-05-29T08:00:00Z"
+      },
+      {
+        "user_id": "usr_002",
+        "name": "Bola Adeyemi",
+        "status": "pending"
+      },
+      {
+        "user_id": "usr_003",
+        "name": "Emeka Obi",
+        "status": "missed",
+        "grace_period_ends": "2024-05-30T08:00:00Z"
+      }
+    ]
+  }
+}
+Join Group
+POST /api/groups/:groupId/join
+Auth required: Yes
+Request Body:
+{
+  "invite_code": "SUN-2024"
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "joined": true,
+    "group_id": "grp_x1y2z3",
+    "rotation_position": 8,
+    "first_contribution_date": "2024-06-05T00:00:00Z",
+    "mandate_setup_required": true,
+    "mandate_setup_url": "https://squad.co/mandate/setup/..."
+  }
+}
+Error Responses:
+{ "error": { "code": "SCORE_TOO_LOW", 
+             "message": "Your AjoScore of 45 does not meet the group minimum of 55" } }
+{ "error": { "code": "GROUP_FULL", 
+             "message": "This group has reached its maximum member count" } }
+Auto Match Group
+POST /api/groups/match
+Auth required: Yes
+Request Body:
+{
+  "contribution_amount": 10000,
+  "frequency": "weekly"
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "matches": [
+      {
+        "match_id": "match_001",
+        "compatibility_score": 94,
+        "contribution_amount": 10000,
+        "frequency": "weekly",
+        "proposed_members": [
+          {
+            "name": "Tunde Bakare",
+            "ajo_score": 71,
+            "contribution_consistency": "96%",
+            "location": "Lagos"
+          },
+          {
+            "name": "Chisom Eze",
+            "ajo_score": 65,
+            "contribution_consistency": "88%",
+            "location": "Lagos"
+          }
+        ],
+        "estimated_start_date": "2024-06-10T00:00:00Z"
+      }
+    ]
+  }
+}
+Setup Direct Debit Mandate
+POST /api/groups/:groupId/mandate
+Auth required: Yes
+Request Body:
+{
+  "bank_account_number": "0123456789",
+  "bank_code": "058"
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "mandate_id": "mnd_abc123",
+    "squad_reference": "SQD_REF_001",
+    "status": "active",
+    "first_debit_date": "2024-06-05T00:00:00Z",
+    "amount": 10000
+  }
+}
+Get Group Contribution History
+GET /api/groups/:groupId/contributions
+Auth required: Yes
+Query params: ?cycle=all (or specific cycle number)
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "contributions": [
+      {
+        "cycle": 1,
+        "date": "2024-04-03T00:00:00Z",
+        "total_collected": 100000,
+        "disbursed_to": "Mama Ngozi",
+        "disbursement_amount": 100000,
+        "all_paid": true
+      },
+      {
+        "cycle": 2,
+        "date": "2024-04-10T00:00:00Z",
+        "total_collected": 90000,
+        "disbursed_to": "Bola Adeyemi",
+        "disbursement_amount": 90000,
+        "all_paid": false,
+        "missed_members": ["Emeka Obi"]
+      }
+    ]
+  }
+}
+STAGE 5 — MARKETPLACE
+Create Listing
+POST /api/listings
+Auth required: Yes
+Request Body:
+{
+  "seller_type": "artisan",
+  "category": "Fashion & Tailoring",
+  "title": "Custom Ankara Dress",
+  "description": "I make custom Ankara dresses to fit. Any style, any size. 7-day turnaround.",
+  "price": 25000,
+  "images": ["base64_image_1", "base64_image_2"],
+  "location": "Surulere, Lagos",
+  "condition": null,
+  "delivery_available": true,
+  "lead_time": "7-14 days",
+  "allows_instalment": true,
+  "min_instalment_count": 2
+}
+Seller Type Options:
+"product"   → condition required ("New" | "Used")
+"artisan"   → lead_time required
+"service"   → availability required
+Category Options by Seller Type:
+Products:
+  Electronics & Gadgets, Fashion & Clothing, Food & Groceries,
+  Home & Furniture, Beauty & Personal Care, Agricultural Produce,
+  Books & Stationery, Baby & Kids, Auto Parts, Industrial & Equipment
+Artisans:
+  Fashion & Tailoring, Footwear, Furniture & Woodwork,
+  Art & Paintings, Jewellery & Beadwork, Leather Goods,
+  Ceramics & Pottery, Candles & Soaps, Baskets & Weaving
+Services:
+  Mechanics & Auto Repair, Electrical, Plumbing,
+  Graphic Design, Photography, Makeup & Beauty,
+  Event Planning, Catering, Cleaning, Tutoring,
+  Hair Styling, Interior Decoration
+Success Response — 201:
+{
+  "success": true,
+  "data": {
+    "listing_id": "lst_p9q8r7",
+    "status": "active",
+    "created_at": "2024-05-29T10:00:00Z"
+  }
+}
+Browse Listings
+GET /api/listings
+Auth required: Yes
+Query params: 
+  ?category=Fashion & Tailoring
+  &seller_type=artisan
+  &location=Lagos
+  &min_price=5000
+  &max_price=50000
+  &allows_instalment=true
+  &search=ankara
+  &sort=newest
+  &page=1
+  &limit=12
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "listings": [
+      {
+        "listing_id": "lst_p9q8r7",
+        "seller_type": "artisan",
+        "category": "Fashion & Tailoring",
+        "title": "Custom Ankara Dress",
+        "price": 25000,
+        "allows_instalment": true,
+        "min_instalment_count": 2,
+        "thumbnail": "https://storage.url/image1.jpg",
+        "location": "Surulere, Lagos",
+        "seller": {
+          "name": "Mama Ngozi",
+          "ajo_score": 74,
+          "score_tier": "Gold",
+          "completed_escrows": 34
+        },
+        "created_at": "2024-05-29T10:00:00Z"
+      }
+    ],
+    "total": 86,
+    "page": 1,
+    "limit": 12
+  }
+}
+Get Listing Detail
+GET /api/listings/:listingId
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "listing_id": "lst_p9q8r7",
+    "seller_type": "artisan",
+    "category": "Fashion & Tailoring",
+    "title": "Custom Ankara Dress",
+    "description": "I make custom Ankara dresses...",
+    "price": 25000,
+    "images": [
+      "https://storage.url/image1.jpg",
+      "https://storage.url/image2.jpg"
+    ],
+    "location": "Surulere, Lagos",
+    "delivery_available": true,
+    "lead_time": "7-14 days",
+    "allows_instalment": true,
+    "min_instalment_count": 2,
+    "status": "active",
+    "created_at": "2024-05-29T10:00:00Z",
+    "seller": {
+      "user_id": "usr_001",
+      "name": "Mama Ngozi",
+      "photo": "https://storage.url/photo.jpg",
+      "ajo_score": 74,
+      "score_tier": "Gold",
+      "member_since": "2024-01-15T00:00:00Z",
+      "completed_escrows": 34,
+      "dispute_rate": "0%",
+      "response_rate": "98%"
+    }
+  }
+}
+Initiate Purchase from Listing
+POST /api/listings/:listingId/buy
+Auth required: Yes
+Request Body — Full Payment:
+{
+  "payment_type": "full"
+}
+Request Body — Instalment:
+{
+  "payment_type": "instalment",
+  "instalment_count": 3,
+  "frequency": "monthly"
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "escrow_id": "esc_m1n2o3",
+    "payment_type": "instalment",
+    "total_amount": 25000,
+    "trust_score": 82,
+    "trust_verdict": "SAFE",
+    "trust_reason": "Seller has strong transaction history. No flags detected.",
+    "instalment_schedule": [
+      {
+        "instalment_number": 1,
+        "amount": 8334,
+        "due_date": "2024-06-05T00:00:00Z"
+      },
+      {
+        "instalment_number": 2,
+        "amount": 8333,
+        "due_date": "2024-07-05T00:00:00Z"
+      },
+      {
+        "instalment_number": 3,
+        "amount": 8333,
+        "due_date": "2024-08-05T00:00:00Z"
+      }
+    ],
+    "next_step": "setup_mandate"
+  }
+}
+STAGE 6 — ESCROW
+Create Escrow Manually
+POST /api/escrow
+Auth required: Yes
+Request Body — Employment:
+{
+  "type": "employment",
+  "counterparty_id": "usr_002",
+  "amount": 50000,
+  "description": "Logo design and brand identity package",
+  "expected_completion_date": "2024-06-15T00:00:00Z"
+}
+Request Body — Purchase:
+{
+  "type": "purchase",
+  "counterparty_id": "usr_002",
+  "amount": 75000,
+  "description": "Custom dining table — 6 seater",
+  "listing_id": "lst_p9q8r7"
+}
+Success Response — 201:
+{
+  "success": true,
+  "data": {
+    "escrow_id": "esc_m1n2o3",
+    "type": "employment",
+    "amount": 50000,
+    "status": "pending_funding",
+    "trust_score": 88,
+    "trust_verdict": "SAFE",
+    "trust_reason": "Both parties have strong AjoScores and no dispute history.",
+    "squad_payment_link": "https://pay.squadco.com/esc_m1n2o3",
+    "created_at": "2024-05-29T10:00:00Z"
+  }
+}
+Get My Escrows
+GET /api/escrow/user/:userId
+Auth required: Yes
+Query params: ?type=all&status=active&page=1&limit=10
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "escrows": [
+      {
+        "escrow_id": "esc_m1n2o3",
+        "type": "employment",
+        "amount": 50000,
+        "status": "funded",
+        "my_role": "employer",
+        "counterparty_name": "Chidi Graphics",
+        "counterparty_score": 71,
+        "description": "Logo design job",
+        "my_confirmation": false,
+        "counterparty_confirmation": false,
+        "created_at": "2024-05-29T10:00:00Z"
+      }
+    ],
+    "total": 12,
+    "page": 1,
+    "limit": 10
+  }
+}
+Get Escrow Detail
+GET /api/escrow/:escrowId
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "escrow_id": "esc_m1n2o3",
+    "type": "employment",
+    "amount": 50000,
+    "status": "funded",
+    "description": "Logo design and brand identity",
+    "trust_score": 88,
+    "trust_verdict": "SAFE",
+    "creator": {
+      "user_id": "usr_001",
+      "name": "Emeka Obi",
+      "ajo_score": 68,
+      "role": "employer"
+    },
+    "counterparty": {
+      "user_id": "usr_002",
+      "name": "Chidi Graphics",
+      "ajo_score": 71,
+      "role": "worker"
+    },
+    "confirmation_status": {
+      "creator_confirmed": false,
+      "counterparty_confirmed": true,
+      "both_confirmed": false
+    },
+    "dispute_raised": false,
+    "squad_escrow_id": "SQD_ESC_001",
+    "created_at": "2024-05-29T10:00:00Z",
+    "expected_completion": "2024-06-15T00:00:00Z",
+    "instalment_schedule": null
+  }
+}
+Confirm Escrow Completion
+POST /api/escrow/:escrowId/confirm
+Auth required: Yes
+Request Body:
+{
+  "confirmed": true
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "your_confirmation": true,
+    "counterparty_confirmation": true,
+    "both_confirmed": true,
+    "payment_released": true,
+    "amount_released": 50000,
+    "score_update": {
+      "your_score_change": 5,
+      "new_score": 73,
+      "reason": "Escrow completed without dispute"
+    }
+  }
+}
+Raise Dispute
+POST /api/escrow/:escrowId/dispute
+Auth required: Yes
+Request Body:
+{
+  "reason": "work_not_completed",
+  "description": "The worker delivered only 2 of the 5 agreed logo variations and has stopped responding.",
+  "evidence_urls": ["https://storage.url/screenshot1.jpg"]
+}
+Reason Options:
+"work_not_completed"
+"goods_not_delivered"
+"quality_not_as_agreed"
+"wrong_item_delivered"
+"seller_unresponsive"
+"other"
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "dispute_id": "dsp_001",
+    "status": "under_review",
+    "funds_held": true,
+    "ai_recommendation": "Based on the job description and reported completion, partial release is recommended. 40% to worker for partial delivery, 60% refund to employer.",
+    "response_deadline_hours": 48,
+    "message": "Your dispute has been received. The other party has 48 hours to respond. Funds are held securely."
+  }
+}
+STAGE 7 — INSTALMENTS
+Create Instalment Plan
+POST /api/instalments
+Auth required: Yes
+Request Body:
+{
+  "escrow_id": "esc_m1n2o3",
+  "total_amount": 25000,
+  "instalment_count": 3,
+  "frequency": "monthly",
+  "bank_account_number": "0123456789",
+  "bank_code": "058"
+}
+Success Response — 201:
+{
+  "success": true,
+  "data": {
+    "plan_id": "pln_001",
+    "schedule": [
+      {
+        "instalment_id": "ins_001",
+        "instalment_number": 1,
+        "amount": 8334,
+        "due_date": "2024-06-05T00:00:00Z",
+        "status": "upcoming"
+      },
+      {
+        "instalment_id": "ins_002",
+        "instalment_number": 2,
+        "amount": 8333,
+        "due_date": "2024-07-05T00:00:00Z",
+        "status": "upcoming"
+      },
+      {
+        "instalment_id": "ins_003",
+        "instalment_number": 3,
+        "amount": 8333,
+        "due_date": "2024-08-05T00:00:00Z",
+        "status": "upcoming"
+      }
+    ],
+    "mandate_id": "mnd_002",
+    "total_amount": 25000,
+    "amount_paid": 0,
+    "amount_remaining": 25000
+  }
+}
+Get Instalment Status
+GET /api/instalments/:escrowId
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "plan_id": "pln_001",
+    "total_amount": 25000,
+    "amount_paid": 8334,
+    "amount_remaining": 16666,
+    "progress_percent": 33,
+    "next_due": {
+      "instalment_number": 2,
+      "amount": 8333,
+      "due_date": "2024-07-05T00:00:00Z",
+      "days_until_due": 12
+    },
+    "schedule": [
+      {
+        "instalment_number": 1,
+        "amount": 8334,
+        "due_date": "2024-06-05T00:00:00Z",
+        "status": "paid",
+        "paid_at": "2024-06-05T09:00:00Z",
+        "squad_reference": "SQD_TRX_001"
+      },
+      {
+        "instalment_number": 2,
+        "amount": 8333,
+        "due_date": "2024-07-05T00:00:00Z",
+        "status": "upcoming"
+      },
+      {
+        "instalment_number": 3,
+        "amount": 8333,
+        "due_date": "2024-08-05T00:00:00Z",
+        "status": "upcoming"
+      }
+    ]
+  }
+}
+STAGE 8 — LOANS
+Check Loan Eligibility & Get Offer
+GET /api/loans/eligibility/:userId
+Auth required: Yes
+Success Response — 200 (Not Yet Eligible):
+{
+  "success": true,
+  "data": {
+    "eligible": false,
+    "conditions": {
+      "score_met": { "required": 61, "current": 68, "passed": true },
+      "tenure_met": { "required_days": 60, "current_days": 34,
+                      "passed": false, "days_remaining": 26 },
+      "ajo_member": { "passed": true },
+      "consistency_met": { "required_percent": 80,
+                           "current_percent": 81, "passed": true },
+      "no_disputes": { "passed": true },
+      "no_default": { "passed": true }
+    },
+    "conditions_passed": 5,
+    "conditions_total": 6,
+    "message": "You qualify on 5 of 6 conditions. Stay active for 26 more days to unlock your loan offer.",
+    "offer": null
+  }
+}
+Success Response — 200 (Eligible):
+{
+  "success": true,
+  "data": {
+    "eligible": true,
+    "conditions": {
+      "score_met": { "passed": true },
+      "tenure_met": { "passed": true },
+      "ajo_member": { "passed": true },
+      "consistency_met": { "passed": true },
+      "no_disputes": { "passed": true },
+      "no_default": { "passed": true }
+    },
+    "conditions_passed": 6,
+    "conditions_total": 6,
+    "offer": {
+      "max_amount": 162000,
+      "interest_rate": 0.04,
+      "tier": "Silver",
+      "repayment_options": {
+        "1_month": {
+          "monthly_payment": 168480,
+          "total_repayable": 168480
+        },
+        "2_months": {
+          "monthly_payment": 87192,
+          "total_repayable": 174384
+        },
+        "3_months": {
+          "monthly_payment": 59508,
+          "total_repayable": 178524
+        },
+        "6_months": {
+          "monthly_payment": 32076,
+          "total_repayable": 192456
+        }
+      }
+    }
+  }
+}
+Apply for Loan
+POST /api/loans/apply
+Auth required: Yes
+Request Body:
+{
+  "amount": 100000,
+  "repayment_months": 3,
+  "bank_account_number": "0123456789",
+  "bank_code": "058"
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "loan_id": "lon_001",
+    "amount": 100000,
+    "interest_rate": 0.04,
+    "monthly_repayment": 36608,
+    "total_repayable": 109824,
+    "repayment_schedule": [
+      {
+        "repayment_number": 1,
+        "amount": 36608,
+        "due_date": "2024-07-01T00:00:00Z"
+      },
+      {
+        "repayment_number": 2,
+        "amount": 36608,
+        "due_date": "2024-08-01T00:00:00Z"
+      },
+      {
+        "repayment_number": 3,
+        "amount": 36608,
+        "due_date": "2024-09-01T00:00:00Z"
+      }
+    ],
+    "approval_status": "approved",
+    "disbursement_status": "processing",
+    "squad_reference": "SQD_LOAN_001",
+    "message": "Your loan has been approved. ₦100,000 will arrive in your Squad wallet within 2 minutes."
+  }
+}
+Get Active Loan
+GET /api/loans/:userId
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "loan_id": "lon_001",
+    "amount_borrowed": 100000,
+    "amount_remaining": 73216,
+    "amount_repaid": 36608,
+    "next_repayment": {
+      "amount": 36608,
+      "due_date": "2024-08-01T00:00:00Z",
+      "days_until_due": 18
+    },
+    "early_warning": false,
+    "status": "active",
+    "repayments": [
+      {
+        "repayment_number": 1,
+        "amount": 36608,
+        "due_date": "2024-07-01T00:00:00Z",
+        "status": "paid",
+        "paid_at": "2024-07-01T09:00:00Z"
+      },
+      {
+        "repayment_number": 2,
+        "amount": 36608,
+        "due_date": "2024-08-01T00:00:00Z",
+        "status": "upcoming"
+      },
+      {
+        "repayment_number": 3,
+        "amount": 36608,
+        "due_date": "2024-09-01T00:00:00Z",
+        "status": "upcoming"
+      }
+    ]
+  }
+}
+STAGE 9 — TRANSACTION TRUST SCORING
+Called internally by backend before every payment. Frontend only sees the result.
+Score a Transaction
+POST /api/trust/score
+Auth required: Yes (internal call)
+Request Body:
+{
+  "payer_id": "usr_001",
+  "receiver_id": "usr_002",
+  "amount": 50000,
+  "transaction_type": "escrow_creation"
+}
+Transaction Type Options:
+"escrow_creation"
+"instalment_payment"
+"ajo_contribution"
+"marketplace_purchase"
+"loan_disbursement"
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "trust_score": 88,
+    "verdict": "SAFE",
+    "reason": "Both parties have consistent transaction history. Amount is within normal range.",
+    "flags": [],
+    "action": "proceed"
+  }
+}
+Flagged Response:
+{
+  "success": true,
+  "data": {
+    "trust_score": 28,
+    "verdict": "BLOCK",
+    "reason": "Receiver account created 2 days ago. This would be their first transaction. Amount is unusually large for a new account.",
+    "flags": [
+      "new_account",
+      "high_amount_for_account_age",
+      "no_prior_transactions"
+    ],
+    "action": "block"
+  }
+}
+Get Trust History
+GET /api/trust/history/:userId
+Auth required: Yes
+Query params: ?limit=20&offset=0
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "transactions": [
+      {
+        "transaction_id": "txn_001",
+        "type": "escrow_creation",
+        "amount": 50000,
+        "trust_score": 88,
+        "verdict": "SAFE",
+        "counterparty": "Chidi Graphics",
+        "created_at": "2024-05-29T10:00:00Z"
+      }
+    ],
+    "total": 34
+  }
+}
+STAGE 10 — PROFILE
+Get Profile
+GET /api/profile/:userId
+Auth required: Yes
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "user_id": "usr_001",
+    "full_name": "Emeka Obi",
+    "phone": "08012345678",
+    "email": "emeka@email.com",
+    "occupation": "Artisan",
+    "state": "Lagos",
+    "lga": "Surulere",
+    "language": "English",
+    "profile_photo": "https://storage.url/photo.jpg",
+    "member_since": "2024-01-15T00:00:00Z",
+    "ajo_score": 68,
+    "score_tier": "Silver",
+    "skills": [
+      {
+        "skill": "Graphic Design",
+        "years_experience": 3
+      },
+      {
+        "skill": "Logo Design",
+        "years_experience": 3
+      }
+    ],
+    "availability": "Part time",
+    "rate": "₦15,000 per project",
+    "referral_code": "EMEKA-2024",
+    "referral_count": 2,
+    "referral_score_bonus": 6,
+    "notifications": {
+      "ajo_contributions": true,
+      "score_changes": true,
+      "job_matches": true,
+      "escrow_updates": true,
+      "loan_reminders": true
+    }
+  }
+}
+Update Profile
+PUT /api/profile/:userId
+Auth required: Yes
+Request Body (all fields optional — only send what changed):
+{
+  "full_name": "Emeka Obi Jr",
+  "email": "newemail@email.com",
+  "state": "Abuja",
+  "lga": "Garki",
+  "language": "Pidgin",
+  "availability": "Full time",
+  "rate": "₦20,000 per project"
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "updated": true,
+    "message": "Profile updated successfully"
+  }
+}
+Add Skills
+POST /api/profile/:userId/skills
+Auth required: Yes
+Request Body:
+{
+  "skills": [
+    { "skill": "Web Design", "years_experience": 2 },
+    { "skill": "Branding", "years_experience": 1 }
+  ]
+}
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "skills_added": 2,
+    "total_skills": 4
+  }
+}
+STAGE 11 — ADMIN
+Get Platform Stats
+GET /api/admin/stats
+Auth required: Yes (admin only)
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "total_users": 1248,
+    "active_groups": 87,
+    "total_escrow_value": 4500000,
+    "loans_disbursed_total": 12000000,
+    "transactions_today": 234,
+    "flagged_transactions_pending": 3,
+    "active_disputes": 2
+  }
+}
+Get Flagged Transactions
+GET /api/admin/trust/flagged
+Auth required: Yes (admin only)
+Query params: ?verdict=REVIEW&page=1&limit=20
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "flagged": [
+      {
+        "transaction_id": "txn_055",
+        "type": "escrow_creation",
+        "amount": 850000,
+        "trust_score": 28,
+        "verdict": "BLOCK",
+        "reason": "New account, unusually large amount",
+        "flags": ["new_account", "high_amount_for_account_age"],
+        "payer": { "name": "Unknown User", "ajo_score": 22 },
+        "receiver": { "name": "FastCash Vendor", "ajo_score": 18 },
+        "created_at": "2024-05-29T10:00:00Z"
+      }
+    ],
+    "total": 3
+  }
+}
+Get Active Disputes
+GET /api/admin/disputes
+Auth required: Yes (admin only)
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "disputes": [
+      {
+        "dispute_id": "dsp_001",
+        "escrow_id": "esc_m1n2o3",
+        "amount": 50000,
+        "reason": "work_not_completed",
+        "description": "Worker delivered only 2 of 5 logo variations",
+        "raised_by": "Emeka Obi",
+        "raised_against": "Chidi Graphics",
+        "ai_recommendation": "40% to worker, 60% refund to employer",
+        "status": "awaiting_admin",
+        "created_at": "2024-05-29T10:00:00Z"
+      }
+    ]
+  }
+}
+Resolve Dispute
+POST /api/admin/disputes/:disputeId/resolve
+Auth required: Yes (admin only)
+Request Body:
+{
+  "outcome": "partial_split",
+  "employer_refund_percent": 60,
+  "worker_release_percent": 40,
+  "notes": "Worker provided partial delivery. Partial split approved."
+}
+Outcome Options:
+"full_release"      → 100% to worker/seller
+"full_refund"       → 100% back to employer/buyer
+"partial_split"     → custom percentage split
+Success Response — 200:
+{
+  "success": true,
+  "data": {
+    "resolved": true,
+    "employer_refunded": 30000,
+    "worker_paid": 20000,
+    "squad_reference": "SQD_RES_001",
+    "score_updates": {
+      "worker_score_change": -8,
+      "employer_score_change": 0
+    }
+  }
+}
+SQUAD WEBHOOK
+Receive Squad Events
+POST /api/webhooks/squad
+Auth required: No (verified by Squad signature)
+Incoming Event — Direct Debit Success:
+{
+  "event": "direct_debit.success",
+  "data": {
+    "mandate_id": "mnd_abc123",
+    "amount": 10000,
+    "transaction_reference": "SQD_TRX_001",
+    "timestamp": "2024-05-29T09:00:00Z"
+  }
+}
+Incoming Event — Direct Debit Failed:
+{
+  "event": "direct_debit.failed",
+  "data": {
+    "mandate_id": "mnd_abc123",
+    "amount": 10000,
+    "reason": "insufficient_funds",
+    "timestamp": "2024-05-29T09:00:00Z"
+  }
+}
+Incoming Event — Escrow Funded:
+{
+  "event": "escrow.funded",
+  "data": {
+    "squad_escrow_id": "SQD_ESC_001",
+    "amount": 50000,
+    "timestamp": "2024-05-29T10:00:00Z"
+  }
+}
+Incoming Event — Transfer Success:
+{
+  "event": "transfer.success",
+  "data": {
+    "reference": "SQD_TRX_002",
+    "amount": 100000,
+    "recipient_account": "0123456789",
+    "timestamp": "2024-05-29T11:00:00Z"
+  }
+}
+Backend always responds:
+{ "status": 200 }
+FIREBASE REALTIME — What Frontend Listens To
+Frontend subscribes to these paths. Backend writes to them.
+// Live transaction feed — Admin dashboard
+/live_transactions/{transaction_id}
+{
+  amount: 50000,
+  type: "escrow_creation",
+  user_name: "Emeka Obi",
+  trust_score: 88,
+  verdict: "SAFE",
+  timestamp: "2024-05-29T10:00:00Z"
+}
+// Group contribution status — Group detail page
+/group_status/{group_id}
+{
+  current_cycle: 3,
+  members_paid: 7,
+  members_total: 10,
+  next_disbursement: "2024-06-05T00:00:00Z",
+  pot_amount: 70000
+}
+// Escrow status — Escrow detail page
+/escrow_status/{escrow_id}
+{
+  creator_confirmed: false,
+  counterparty_confirmed: true,
+  status: "awaiting_creator",
+  updated_at: "2024-05-29T14:00:00Z"
+}
+// User notifications — Dashboard bell
+/notifications/{user_id}/{notification_id}
+{
+  type: "contribution_due",
+  message: "Your Ajo contribution of ₦10,000 is due in 2 days",
+  read: false,
+  created_at: "2024-05-29T10:00:00Z"
+}
+// Score updates — Dashboard and score page
+/score_updates/{user_id}
+{
+  new_score: 70,
+  previous_score: 68,
+  change: 2,
+  reason: "On-time contribution — Sunshine Group",
+  updated_at: "2024-05-29T10:00:00Z"
+}
+QUICK REFERENCE — All Endpoints
+AUTH
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/auth/me
+ONBOARDING
+POST   /api/onboarding/step1
+POST   /api/onboarding/step2
+POST   /api/onboarding/step3
+POST   /api/onboarding/step4
+POST   /api/onboarding/step5
+GET    /api/onboarding/progress
+SCORE
+GET    /api/score/:userId
+GET    /api/score/:userId/history
+GET    /api/score/:userId/events
+GET    /api/score/:userId/eligibility
+GROUPS
+POST   /api/groups
+GET    /api/groups
+GET    /api/groups/my
+GET    /api/groups/:groupId
+POST   /api/groups/:groupId/join
+POST   /api/groups/match
+POST   /api/groups/:groupId/mandate
+GET    /api/groups/:groupId/contributions
+MARKETPLACE
+POST   /api/listings
+GET    /api/listings
+GET    /api/listings/:listingId
+GET    /api/listings/seller/:userId
+PUT    /api/listings/:listingId
+DELETE /api/listings/:listingId
+POST   /api/listings/:listingId/buy
+ESCROW
+POST   /api/escrow
+GET    /api/escrow/user/:userId
+GET    /api/escrow/:escrowId
+POST   /api/escrow/:escrowId/confirm
+POST   /api/escrow/:escrowId/dispute
+INSTALMENTS
+POST   /api/instalments
+GET    /api/instalments/:escrowId
+POST   /api/instalments/:id/pay
+LOANS
+GET    /api/loans/eligibility/:userId
+POST   /api/loans/apply
+GET    /api/loans/:userId
+TRUST
+POST   /api/trust/score
+GET    /api/trust/history/:userId
+GET    /api/trust/flagged
+PROFILE
+GET    /api/profile/:userId
+PUT    /api/profile/:userId
+POST   /api/profile/:userId/skills
+ADMIN
+GET    /api/admin/stats
+GET    /api/admin/trust/flagged
+GET    /api/admin/disputes
+POST   /api/admin/disputes/:disputeId/resolve
+WEBHOOKS
+POST   /api/webhooks/squad

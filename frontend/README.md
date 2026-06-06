@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## What does the app do?
+
+AjoBI is a digital cooperative society, turning your daily trade contributions into a verifiable digital asset. It helps secure your future with the power of the community.
+
+Key features include:
+- **Group Savings (Ajo)**: Digitize traditional rotatory savings with automatic record-keeping and secure fund disbursement.
+- **Work Safely**: Protect income with community-backed insurance and secure transaction verification for every hustle.
+- **Access Credit**: Use transaction history to unlock low-interest micro-loans specifically designed for informal entrepreneurs.
+- **AjoScore**: A dynamic credit score built from your community savings and trade history.
+
+## Vision
+
+To empower informal entrepreneurs by transforming their daily community savings into verifiable digital creditworthiness, bridging the gap to financial inclusion and essential financial services.
+
 ## Getting Started
 
 First, run the development server:
