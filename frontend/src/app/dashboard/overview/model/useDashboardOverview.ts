@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { fetchMyGroups } from '@/store/slices/groupsSlice';
-import { fetchListings } from '@/store/slices/marketplaceSlice';
 import { fetchSavingsOverview } from '@/store/slices/savingsSlice';
 import { fetchProfile } from '@/store/slices/settingsSlice';
 import { fetchAjoScore, fetchEligibility } from '@/store/slices/scoreSlice';
@@ -53,7 +52,6 @@ export const useDashboardOverview = () => {
   const [virtualAccountData, setVirtualAccountData] = useState<any>(null);
   
   const { myGroups, isLoading: groupsLoading } = useAppSelector((state) => state.groups);
-  const { listings, isLoading: marketplaceLoading } = useAppSelector((state) => state.marketplace);
   const { balance, isLoading: savingsLoading } = useAppSelector((state) => state.savings);
   const { profile, isLoading: settingsLoading } = useAppSelector((state) => state.settings);
   const { ajoScore, eligibility, isLoading: scoreLoading } = useAppSelector((state) => state.score);
@@ -83,13 +81,12 @@ export const useDashboardOverview = () => {
   }, [user]);
 
   console.log('user id', userId);
-  const isLoading = groupsLoading || marketplaceLoading || savingsLoading || settingsLoading || scoreLoading;
+  const isLoading = groupsLoading || savingsLoading || settingsLoading || scoreLoading;
 
   useEffect(() => {
     const userId = user?.user_id; 
     
     dispatch(fetchMyGroups(userId));
-    dispatch(fetchListings({ limit: 5 }));
     dispatch(fetchSavingsOverview());
     dispatch(fetchProfile());
     dispatch(fetchAjoScore(userId));
@@ -116,12 +113,7 @@ export const useDashboardOverview = () => {
           amount: "₦25,000"
         }
       ],
-      activeInstalments: listings.filter(l => l.allows_instalment).map(l => ({
-        item: l.title,
-        progress: 0,
-        paid: "₦0",
-        total: `₦${l.price.toLocaleString()}`
-      })),
+      activeInstalments: [],
       recentActivities: [
         {
           id: "1",
@@ -137,7 +129,7 @@ export const useDashboardOverview = () => {
         loanMessage: eligibility?.loan_eligibility_message || ""
       }
     } as DashboardData;
-  }, [myGroups, listings, balance, profile, ajoScore, eligibility, isLoading]);
+  }, [myGroups, balance, profile, ajoScore, eligibility, isLoading]);
 
   const handleKYCSubmit = async (kycData: Omit<KYCData, 'user_id'>) => {
     console.log('kycData', kycData);

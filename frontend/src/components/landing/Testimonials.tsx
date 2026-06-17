@@ -74,7 +74,7 @@ export function Testimonials() {
               </div>
             </div>
             <p className="text-sm text-gray-600 leading-relaxed">
-              "The Marketplace feature on AjoBI has connected me with more
+              "The Escrow feature on AjoBI has connected me with more
               clients than I ever thought possible. It's truly a
               business-in-a-pocket."
             </p>

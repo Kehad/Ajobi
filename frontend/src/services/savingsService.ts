@@ -27,22 +27,42 @@ export interface SavingsActivity {
 
 export const savingsService = {
   getOverview: async () => {
-    // const response = await apiClient.get('/api/savings/overview');
-    return { success: true, data: { total_saved: 50000, active_goals: 2, total_interest: 1500 } };
+    const response = await apiClient.get('/api/savings/overview');
+    return response.data;
   },
 
   getGoals: async () => {
-    // const response = await apiClient.get('/api/savings/goals');
-    return { success: true, data: [] };
+    const response = await apiClient.get('/api/savings/mine');
+    return response.data;
   },
 
   getAutomationRules: async () => {
-    // const response = await apiClient.get('/api/savings/automation-rules');
-    return { success: true, data: [] };
+    const response = await apiClient.get('/api/savings/automation-rules');
+    return response.data;
   },
 
   getActivity: async () => {
-    // const response = await apiClient.get('/api/savings/activity');
-    return { success: true, data: [] };
+    const response = await apiClient.get('/api/savings/activity');
+    return response.data;
+  },
+
+  createGoal: async (payload: { name: string; target_amount: number; deadline: string; frequency: string }) => {
+    const response = await apiClient.post('/api/savings/create', payload);
+    return response.data;
+  },
+
+  getGoalDetail: async (id: string) => {
+    const response = await apiClient.get(`/api/savings/${id}`);
+    return response.data;
+  },
+
+  breakGoal: async (id: string) => {
+    const response = await apiClient.post(`/api/savings/${id}/break`);
+    return response.data;
+  },
+
+  setupDebit: async (id: string) => {
+    const response = await apiClient.post(`/api/savings/${id}/setup-debit`);
+    return response.data;
   }
 };

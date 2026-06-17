@@ -1,0 +1,1236 @@
+AjoBI — Full Development Documentation
+
+
+
+Overview
+
+AjoBI has four core features: Auth & AjoScore, Digital Ajo Groups, Savings Goals, and Simple Escrow. The backend is PHP (REST API), the frontend is React. Each developer owns a vertical — one person can work on Ajo Groups while another works on Savings Goals without touching the same files or endpoints.
+
+
+
+How the Codebase is Structured
+
+Frontend (React)
+
+src/
+
+  pages/
+
+    auth/
+
+    dashboard/
+
+    groups/
+
+    savings/
+
+    escrow/
+
+    admin/
+
+  components/
+
+  hooks/
+
+  services/       ← all API calls live here
+
+  context/
+
+
+
+Backend (PHP)
+
+api/
+
+  auth/
+
+  ajoscore/
+
+  groups/
+
+  savings/
+
+  escrow/
+
+  admin/
+
+  webhooks/
+
+config/
+
+middleware/
+
+models/
+
+
+
+Each feature folder is self-contained. Two developers never edit the same file at the same time if they own different features.
+
+
+
+Feature 1 — Auth & AjoScore
+
+What it does
+
+User signs up, completes onboarding, gets a base AjoScore. They can optionally upload a bank statement which Gemini analyses to boost the score.
+
+Frontend pages
+
+/register — name, phone, email, password
+
+/login
+
+/onboarding — multi-step form: what do you do, monthly income estimate, how long have you been earning
+
+/profile — shows AjoScore, score breakdown, upload bank statement
+
+Frontend API calls (what the frontend developer calls)
+
+POST /api/auth/register
+
+POST /api/auth/login
+
+POST /api/auth/logout
+
+GET  /api/auth/user
+
+
+
+POST /api/ajoscore/onboarding     ← submit onboarding answers
+
+POST /api/ajoscore/bank-statement ← upload PDF, triggers Gemini
+
+GET  /api/ajoscore/me             ← returns score + breakdown
+
+
+
+Backend endpoints (what the backend developer builds)
+
+POST /api/auth/register
+
+  - Validates inputs
+
+  - Hashes password
+
+  - Creates user record
+
+  - Returns JWT token
+
+
+
+POST /api/auth/login
+
+  - Validates credentials
+
+  - Returns JWT token
+
+
+
+POST /api/ajoscore/onboarding
+
+  - Receives onboarding answers
+
+  - Runs scoring formula (weighted rules, max 50 points)
+
+  - Saves score to users table
+
+  - Returns score + explanation
+
+
+
+POST /api/ajoscore/bank-statement
+
+  - Receives PDF upload
+
+  - Sends to Gemini API with prompt:
+
+    "Analyse this bank statement. Return JSON:
+
+     { income_consistency: 0-10, avg_monthly_inflow: number,
+
+       savings_behaviour: 0-10, red_flags: [] }"
+
+  - Blends Gemini output with base score (max 100 total)
+
+  - Updates user score
+
+  - Returns new score + breakdown
+
+
+
+GET /api/ajoscore/me
+
+  - Returns user score, component breakdown, history
+
+
+
+Database tables
+
+users
+
+  id, name, phone, email, password_hash,
+
+  ajo_score, score_breakdown (JSON),
+
+  created_at, updated_at
+
+
+
+score_history
+
+  id, user_id, old_score, new_score,
+
+  reason, created_at
+
+
+
+External API called
+
+Gemini API — called from the backend only, never from frontend
+
+
+
+Feature 2 — Digital Ajo Groups
+
+What it does
+
+Users create or join a savings group. Everyone authorizes Paystack Direct Debit. Every cycle the platform auto-charges all members and auto-disburses the pot to whoever is next in rotation.
+
+Frontend pages
+
+/groups — list of groups user belongs to
+
+/groups/create — form to create a new group
+
+/groups/join/:code — join via invite code
+
+/groups/:id — group dashboard: members, payment status, rotation order, next payout
+
+/groups/:id/setup-debit — Paystack Direct Debit authorization page
+
+Frontend API calls
+
+POST /api/groups/create
+
+POST /api/groups/join
+
+GET  /api/groups/mine
+
+GET  /api/groups/:id
+
+GET  /api/groups/:id/members
+
+GET  /api/groups/:id/payments
+
+POST /api/groups/:id/setup-debit   ← initiates Paystack auth
+
+
+
+Backend endpoints
+
+POST /api/groups/create
+
+  - Creates group record
+
+  - Generates unique invite code
+
+  - Adds creator as first member
+
+  - Returns group details + invite link
+
+
+
+POST /api/groups/join
+
+  - Validates invite code
+
+  - Checks group is not full
+
+  - Adds user as member
+
+  - Assigns rotation position
+
+  - Returns group details
+
+
+
+GET /api/groups/:id
+
+  - Returns group info, member list,
+
+    current cycle, rotation order,
+
+    who has paid, who receives next payout
+
+
+
+POST /api/groups/:id/setup-debit
+
+  - Calls Paystack to initialize mandate
+
+  - Returns authorization URL
+
+  - Frontend redirects user to Paystack page
+
+  - After auth, Paystack redirects back with mandate code
+
+  - Backend saves mandate code against member record
+
+
+
+[CRON JOB — runs on due date]
+
+  - For each active group where today = collection date:
+
+    - Loop through all members
+
+    - Call Paystack Charge Authorization on each mandate
+
+    - Mark payment as pending
+
+
+
+[WEBHOOK — charge.success]
+
+  - Find the group and member from metadata
+
+  - Mark member as paid for this cycle
+
+  - If ALL members paid:
+
+    → Find next recipient in rotation
+
+    → Call Paystack Transfer to their account
+
+    → Mark cycle as complete
+
+    → Update everyone's AjoScore (+2)
+
+    → Move rotation to next person
+
+    → Set next cycle date
+
+
+
+[WEBHOOK — charge.failed]
+
+  - Mark member as failed
+
+  - Send reminder notification
+
+  - Update AjoScore (-5 if still unpaid after grace period)
+
+
+
+Paystack endpoints this feature uses
+
+POST https://api.paystack.co/subscription     ← set up recurring mandate
+
+POST https://api.paystack.co/charge           ← charge a mandate
+
+POST https://api.paystack.co/transfer         ← disburse to recipient
+
+GET  https://api.paystack.co/transfer/:id     ← verify transfer
+
+
+
+Database tables
+
+groups
+
+  id, name, invite_code, contribution_amount,
+
+  frequency (weekly/biweekly/monthly),
+
+  max_members, current_cycle, status,
+
+  created_by, created_at
+
+
+
+group_members
+
+  id, group_id, user_id, rotation_position,
+
+  paystack_mandate_code, bank_account,
+
+  joined_at
+
+
+
+group_payments
+
+  id, group_id, user_id, cycle_number,
+
+  amount, status (pending/paid/failed),
+
+  paystack_reference, paid_at
+
+
+
+group_disbursements
+
+  id, group_id, recipient_user_id,
+
+  cycle_number, amount,
+
+  paystack_transfer_code, status, disbursed_at
+
+
+
+
+
+Feature 3 — Savings Goals
+
+What it does
+
+User creates a personal savings goal (rent, tax, travel, anything), sets a target amount and deadline. Platform calculates the instalment, auto-debits on schedule via Paystack, and locks the funds until the goal date.
+
+Frontend pages
+
+/savings — list of user's active goals with progress bars
+
+/savings/create — form: goal name, target amount, deadline, frequency
+
+/savings/:id — goal detail: amount saved, next debit, projected completion, break option
+
+Frontend API calls
+
+POST /api/savings/create
+
+GET  /api/savings/mine
+
+GET  /api/savings/:id
+
+POST /api/savings/:id/break   ← early withdrawal
+
+POST /api/savings/:id/setup-debit
+
+
+
+Backend endpoints
+
+POST /api/savings/create
+
+  - Receives goal name, target, deadline, frequency
+
+  - Calculates instalment = target ÷ number of periods
+
+  - Creates goal record with status "pending_debit_setup"
+
+  - Returns instalment breakdown
+
+
+
+POST /api/savings/:id/setup-debit
+
+  - Initializes Paystack mandate for this goal
+
+  - Returns Paystack authorization URL
+
+  - After auth, saves mandate code
+
+  - Updates goal status to "active"
+
+
+
+[CRON JOB — runs on each instalment date]
+
+  - For each active goal where today = next_debit_date:
+
+    - Call Paystack Charge on mandate
+
+    - Mark instalment as pending
+
+
+
+[WEBHOOK — charge.success]
+
+  - Add amount to goal's locked_balance
+
+  - Record instalment as paid
+
+  - Check if goal is 100% complete
+
+  - If complete: notify user, unlock for withdrawal
+
+  - Update next_debit_date
+
+
+
+POST /api/savings/:id/break
+
+  - Marks goal as broken
+
+  - Releases locked_balance for withdrawal
+
+  - Applies AjoScore penalty (-3)
+
+  - Cancels Paystack mandate
+
+
+
+GET /api/savings/:id
+
+  - Returns goal details, progress percentage,
+
+    instalment history, next debit date,
+
+    projected completion date
+
+
+
+Database tables
+
+savings_goals
+
+  id, user_id, name, target_amount,
+
+  locked_balance, frequency, deadline,
+
+  instalment_amount, next_debit_date,
+
+  paystack_mandate_code, status
+
+  (pending_debit_setup/active/completed/broken),
+
+  created_at
+
+
+
+savings_instalments
+
+  id, goal_id, user_id, amount,
+
+  status (pending/paid/failed),
+
+  paystack_reference, paid_at
+
+
+
+
+
+Feature 4 — Simple Escrow
+
+What it does
+
+User A creates an escrow request, gets a payment link, shares it. User B pays via that link. Both parties confirm. Funds release automatically. No marketplace. No job matching. Just a link and two confirm buttons.
+
+Frontend pages
+
+/escrow — list of user's escrow requests (created and received)
+
+/escrow/create — form: amount, description, recipient phone/email (optional)
+
+/escrow/:id — status page with confirm button
+
+/pay/esc_:code — public page where User B pays (no login required)
+
+Frontend API calls
+
+POST /api/escrow/create
+
+GET  /api/escrow/mine
+
+GET  /api/escrow/:id
+
+POST /api/escrow/:id/confirm    ← each party calls this
+
+GET  /api/escrow/public/:code   ← public status, no auth needed
+
+
+
+Backend endpoints
+
+POST /api/escrow/create
+
+  - Receives amount, description, optional recipient info
+
+  - Creates escrow record with status "awaiting_payment"
+
+  - Calls Paystack Payment Page API to generate payment link
+
+  - Returns link: pay.ajobi.app/esc_xyz123
+
+
+
+GET /api/escrow/public/:code
+
+  - No auth required
+
+  - Returns escrow amount, description, status
+
+  - Frontend shows pay button or status message
+
+
+
+[WEBHOOK — charge.success from escrow payment link]
+
+  - Matches payment to escrow record via metadata
+
+  - Updates status to "funded"
+
+  - Notifies both parties
+
+
+
+POST /api/escrow/:id/confirm
+
+  - Records which party confirmed
+
+  - If both confirmed:
+
+    → Call Paystack Transfer to recipient
+
+    → Update status to "released"
+
+    → Update both users' AjoScores (+1 each)
+
+  - If only one confirmed:
+
+    → Status stays "awaiting_confirmation"
+
+
+
+[ADMIN ONLY — dispute handling]
+
+POST /api/admin/escrow/:id/release   ← force release
+
+POST /api/admin/escrow/:id/refund    ← force refund
+
+
+
+Paystack endpoints this feature uses
+
+POST https://api.paystack.co/page          ← generate payment link
+
+POST https://api.paystack.co/transfer      ← release funds
+
+POST https://api.paystack.co/refund        ← refund on dispute
+
+
+
+Database tables
+
+escrows
+
+  id, creator_user_id, recipient_user_id (nullable),
+
+  amount, description, payment_code,
+
+  paystack_page_id, paystack_reference,
+
+  creator_confirmed (bool), recipient_confirmed (bool),
+
+  status (awaiting_payment/funded/
+
+          awaiting_confirmation/released/
+
+          disputed/refunded),
+
+  created_at, released_at
+
+
+
+
+
+Feature 5 — Admin Panel
+
+Frontend pages
+
+/admin/transactions — all payments, transfers, escrows
+
+/admin/escrow — flagged/disputed escrows with release/refund buttons
+
+/admin/users — user list, AjoScore history, ban user
+
+Frontend API calls
+
+GET  /api/admin/transactions
+
+GET  /api/admin/escrow/disputed
+
+POST /api/admin/escrow/:id/release
+
+POST /api/admin/escrow/:id/refund
+
+GET  /api/admin/users
+
+POST /api/admin/users/:id/ban
+
+
+
+Backend
+
+All admin endpoints check for role = admin on the JWT before executing. No admin logic is mixed into feature endpoints.
+
+
+
+Webhooks — Central Handler
+
+All Paystack webhooks hit one endpoint: POST /api/webhooks/paystack
+
+The handler reads the event field and routes internally:
+
+charge.success     → routes to groups, savings, or escrow
+
+                     based on metadata.source field
+
+transfer.success   → confirms disbursement completed
+
+transfer.failed    → flags for admin review
+
+charge.failed      → updates payment record, triggers notification
+
+
+
+Every webhook verifies the Paystack signature header before processing. This is one file, owned by whoever sets up the backend infrastructure.
+
+
+
+Shared Rules Across the Whole Team
+
+Authentication — every protected endpoint checks Authorization: Bearer <token> header. The middleware file is written once by Developer 1 and imported everywhere.
+
+AjoScore updates — no feature directly writes to the ajo_score column. Every feature calls a shared updateScore(userId, delta, reason) function. One function, one place to change.
+
+Paystack calls — no feature calls Paystack directly from scattered files. All Paystack logic lives in services/PaystackService.php. Developers call the service, not the raw API.
+
+Error responses — all endpoints return the same shape:
+
+{ "status": false, "message": "What went wrong", "data": null }
+
+{ "status": true, "message": "Success", "data": { ... } }
+
+
+
+Environment variables — no API keys in code. Everything in .env:
+
+PAYSTACK_SECRET_KEY=
+
+GEMINI_API_KEY=
+
+JWT_SECRET=
+
+DB_HOST=
+
+DB_NAME=
+
+DB_USER=
+
+DB_PASS=
+
+
+
+
+
+
+
+AjoBI — Developer Split: Kehad (Frontend) & Tomiwa (Backend)
+
+
+
+Kehad — Frontend (React)
+
+Kehad builds every page and UI component. He never writes backend logic or touches the database. He calls Tomiwa's endpoints and handles what comes back.
+
+
+
+Feature 1 — Auth & AjoScore
+
+Pages to build:
+
+/register — form with name, phone, email, password. On submit calls POST /api/auth/register. On success saves token to localStorage and redirects to onboarding.
+
+/login — email and password form. Calls POST /api/auth/login. Saves token, redirects to dashboard.
+
+/onboarding — multi-step form (3 steps). Step 1: what do you do for a living. Step 2: rough monthly income. Step 3: how long have you been earning. On final submit calls POST /api/ajoscore/onboarding. Redirects to dashboard on success.
+
+/profile — shows user's AjoScore as a circular progress indicator, score breakdown by component, and a PDF upload button for bank statement. Upload calls POST /api/ajoscore/bank-statement as multipart/form-data. Shows updated score after response.
+
+API calls Kehad makes:
+
+POST /api/auth/register
+
+POST /api/auth/login
+
+POST /api/auth/logout
+
+GET  /api/auth/user
+
+POST /api/ajoscore/onboarding
+
+POST /api/ajoscore/bank-statement
+
+GET  /api/ajoscore/me
+
+
+
+
+
+Feature 2 — Ajo Groups
+
+Pages to build:
+
+/groups — lists all groups the user belongs to. Each card shows group name, contribution amount, frequency, next due date, and user's position in rotation. Calls GET /api/groups/mine.
+
+/groups/create — form with group name, contribution amount, frequency (weekly/biweekly/monthly), and max members. Calls POST /api/groups/create. On success shows the generated invite link with a copy button.
+
+/groups/join/:code — simple page that shows group details and a confirm button. Calls POST /api/groups/join with the code from the URL.
+
+/groups/:id — the main group dashboard. Shows: member list with paid/unpaid status for current cycle, rotation order, who receives the next payout, countdown to next due date, and total pot size. Calls GET /api/groups/:id and GET /api/groups/:id/members.
+
+/groups/:id/setup-debit — explains what Direct Debit means, shows the contribution amount, and has a single "Authorize Payment" button. Calls POST /api/groups/:id/setup-debit, receives a Paystack URL, and redirects the user to it. After Paystack redirects back, shows a success confirmation.
+
+API calls Kehad makes:
+
+POST /api/groups/create
+
+POST /api/groups/join
+
+GET  /api/groups/mine
+
+GET  /api/groups/:id
+
+GET  /api/groups/:id/members
+
+GET  /api/groups/:id/payments
+
+POST /api/groups/:id/setup-debit
+
+
+
+
+
+Feature 3 — Savings Goals
+
+Pages to build:
+
+/savings — lists all the user's savings goals. Each card shows goal name, progress bar (percentage to target), amount saved so far, target amount, and next debit date. Calls GET /api/savings/mine.
+
+/savings/create — form with goal name, target amount, deadline date, and frequency. On submit calls POST /api/savings/create. Response includes calculated instalment amount — show this to the user for confirmation before they proceed to debit setup.
+
+/savings/:id — goal detail page. Shows full progress, instalment history (list of past debits), next debit date, projected completion date, and a "Break Goal" button that warns the user about the AjoScore penalty before confirming. Break calls POST /api/savings/:id/break.
+
+/savings/:id/setup-debit — same pattern as groups. Explain auto-debit, show instalment amount and frequency, button to authorize. Calls POST /api/savings/:id/setup-debit, redirects to Paystack, shows success on return.
+
+API calls Kehad makes:
+
+POST /api/savings/create
+
+GET  /api/savings/mine
+
+GET  /api/savings/:id
+
+POST /api/savings/:id/break
+
+POST /api/savings/:id/setup-debit
+
+
+
+
+
+Feature 4 — Escrow
+
+Pages to build:
+
+/escrow — two tabs: "Created" and "Received". Lists escrow requests with status badges (Awaiting Payment, Funded, Awaiting Confirmation, Released, Disputed). Calls GET /api/escrow/mine.
+
+/escrow/create — form with amount, description, and optional recipient phone or email. On submit calls POST /api/escrow/create. Response includes the payment link — display it prominently with a copy button and WhatsApp share button.
+
+/escrow/:id — status page. Shows amount, description, status, and which parties have confirmed. If status is "funded" and user hasn't confirmed yet, shows a big "Confirm Release" button. Calls GET /api/escrow/:id on load and POST /api/escrow/:id/confirm on button press.
+
+/pay/esc_:code — public page, no login required. Shows escrow amount and description. If unpaid, shows a "Pay Now" button that opens the Paystack checkout (the link comes from GET /api/escrow/public/:code). If already paid, shows current status.
+
+API calls Kehad makes:
+
+POST /api/escrow/create
+
+GET  /api/escrow/mine
+
+GET  /api/escrow/:id
+
+POST /api/escrow/:id/confirm
+
+GET  /api/escrow/public/:code
+
+
+
+
+
+Feature 5 — Admin Panel
+
+Pages to build:
+
+/admin/transactions — paginated table of all transactions across groups, savings, and escrow. Filter by type and date. Calls GET /api/admin/transactions.
+
+/admin/escrow — list of disputed escrows with Release and Refund buttons per row. Calls GET /api/admin/escrow/disputed, POST /api/admin/escrow/:id/release, POST /api/admin/escrow/:id/refund.
+
+/admin/users — user list with AjoScore, account status, and a Ban button. Calls GET /api/admin/users and POST /api/admin/users/:id/ban.
+
+
+
+What Kehad Does Not Touch
+
+No database queries
+
+No Paystack secret key — only redirect URLs and payment links that Tomiwa's backend returns
+
+No Gemini API calls
+
+No webhook handling
+
+No cron jobs
+
+
+
+Shared Rules for Kehad
+
+Every API call goes through a central services/api.js file. Never call fetch directly in a component. This means if Tomiwa changes a URL, Kehad changes it in one place.
+
+Token goes in every request header:
+
+Authorization: Bearer <token from localStorage>
+
+
+
+Every response from Tomiwa follows this shape:
+
+{ "status": true, "message": "Done", "data": { } }
+
+{ "status": false, "message": "What went wrong", "data": null }
+
+
+
+Check status first before reading data. Show message to the user when status is false.
+
+
+
+Tomiwa — Backend (PHP)
+
+Tomiwa builds every endpoint, handles all third-party API calls, manages the database, and processes webhooks. He never writes React components.
+
+
+
+Feature 1 — Auth & AjoScore
+
+Endpoints to build:
+
+POST /api/auth/register Validates name, phone, email, password. Hashes password with bcrypt. Inserts into users table. Returns JWT token.
+
+POST /api/auth/login Checks credentials. Returns JWT token with user id and role inside payload.
+
+POST /api/auth/logout Blacklists the token (store in invalidated_tokens table or use short expiry strategy).
+
+GET /api/auth/user Reads JWT, returns current user details.
+
+POST /api/ajoscore/onboarding Receives onboarding answers. Runs this scoring formula:
+
+Trade/income specificity: 0–20 points
+
+Income estimate provided: 0–15 points
+
+Duration of earning: 0–15 points
+
+Total max: 50 points
+
+Saves score and breakdown JSON to users table. Returns score and explanation per component.
+
+POST /api/ajoscore/bank-statement Receives PDF upload. Sends to Gemini with this prompt:
+
+Analyse this Nigerian bank statement.
+
+Return only valid JSON, no explanation:
+
+{
+
+  "income_consistency": <0-10>,
+
+  "avg_monthly_inflow": <number in naira>,
+
+  "savings_behaviour": <0-10>,
+
+  "red_flags": ["list of concerns or empty array"]
+
+}
+
+
+
+Maps Gemini output to a score boost (max +50 added to base score, total capped at 100). Updates users table. Returns new blended score and breakdown.
+
+GET /api/ajoscore/me Returns current score, component breakdown, and last 10 score history entries.
+
+External APIs Tomiwa calls:
+
+Gemini API — POST https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent
+
+
+
+Tables to create:
+
+users (id, name, phone, email, password_hash, ajo_score,
+
+       score_breakdown JSON, role, created_at, updated_at)
+
+
+
+score_history (id, user_id, old_score, new_score, reason, created_at)
+
+
+
+invalidated_tokens (id, token, invalidated_at)
+
+
+
+
+
+Feature 2 — Ajo Groups
+
+Endpoints to build:
+
+POST /api/groups/create Creates group. Generates a random 6-character invite code. Inserts creator as first member with rotation_position = 1. Returns group details and full invite URL.
+
+POST /api/groups/join Validates invite code. Checks group is not full. Inserts member with next available rotation position. Returns group details.
+
+GET /api/groups/mine Returns all groups the authenticated user belongs to, with their payment status for the current cycle.
+
+GET /api/groups/:id Returns group info, all members, current cycle number, rotation order, who has paid, and who receives the next payout.
+
+GET /api/groups/:id/members Returns member list with paid/unpaid status for current cycle.
+
+GET /api/groups/:id/payments Returns payment history for the group across all cycles.
+
+POST /api/groups/:id/setup-debit Calls Paystack to initialize a Direct Debit mandate for this user in this group. Returns Paystack authorization URL. After user completes authorization on Paystack, Paystack sends a callback — Tomiwa saves the mandate code against the group_members record.
+
+Cron job (runs daily): Checks all active groups where today matches their collection date. For each, loops through members and calls Paystack Charge on each stored mandate code. Marks payments as pending.
+
+Webhook handlers (inside central webhook file):
+
+charge.success where metadata.source = "group" Marks member as paid for the cycle. Checks if all members have paid. If yes: finds next recipient in rotation, calls Paystack Transfer, marks cycle complete, calls updateScore() for all members (+2 each), sets next cycle date.
+
+charge.failed where metadata.source = "group" Marks payment as failed. Sends notification. Calls updateScore() for that member (-5 if not paid within grace period).
+
+Paystack endpoints Tomiwa calls:
+
+POST https://api.paystack.co/subscription
+
+POST https://api.paystack.co/charge
+
+POST https://api.paystack.co/transfer
+
+GET  https://api.paystack.co/transfer/:id
+
+
+
+Tables to create:
+
+groups (id, name, invite_code, contribution_amount,
+
+        frequency, max_members, current_cycle,
+
+        next_collection_date, status, created_by, created_at)
+
+
+
+group_members (id, group_id, user_id, rotation_position,
+
+               paystack_mandate_code, bank_account, joined_at)
+
+
+
+group_payments (id, group_id, user_id, cycle_number,
+
+                amount, status, paystack_reference, paid_at)
+
+
+
+group_disbursements (id, group_id, recipient_user_id,
+
+                     cycle_number, amount,
+
+                     paystack_transfer_code, status, disbursed_at)
+
+
+
+
+
+Feature 3 — Savings Goals
+
+Endpoints to build:
+
+POST /api/savings/create Receives goal name, target amount, deadline, frequency. Calculates instalment = target ÷ number of periods between now and deadline. Creates goal record with status pending_debit_setup. Returns goal with instalment breakdown.
+
+POST /api/savings/:id/setup-debit Initializes Paystack mandate for this goal. Returns Paystack authorization URL. On callback, saves mandate code, updates goal status to active, sets first next_debit_date.
+
+GET /api/savings/mine Returns all user's goals with progress percentage and next debit date.
+
+GET /api/savings/:id Returns goal details, instalment history, next debit date, projected completion.
+
+POST /api/savings/:id/break Marks goal as broken. Sets locked_balance as available for withdrawal. Cancels Paystack mandate. Calls updateScore(-3, "broke savings goal").
+
+Cron job (runs daily): Checks all active goals where today matches next_debit_date. Calls Paystack Charge on each mandate. Sets next debit date based on frequency.
+
+Webhook handlers:
+
+charge.success where metadata.source = "savings" Adds amount to goal's locked_balance. Records instalment as paid. Checks if locked_balance >= target_amount. If yes: updates status to completed, notifies user, calls updateScore(+5, "completed savings goal").
+
+Tables to create:
+
+savings_goals (id, user_id, name, target_amount, locked_balance,
+
+               frequency, deadline, instalment_amount,
+
+               next_debit_date, paystack_mandate_code,
+
+               status, created_at)
+
+
+
+savings_instalments (id, goal_id, user_id, amount,
+
+                     status, paystack_reference, paid_at)
+
+
+
+
+
+Feature 4 — Escrow
+
+Endpoints to build:
+
+POST /api/escrow/create Creates escrow record. Calls Paystack Payment Page API to generate a payment link for the exact amount. Returns the payment link to Kehad.
+
+GET /api/escrow/mine Returns all escrows where user is creator or recipient.
+
+GET /api/escrow/:id Returns full escrow details and confirmation status of both parties.
+
+GET /api/escrow/public/:code No auth required. Returns escrow amount, description, status, and the Paystack payment URL. Kehad uses this for the public /pay/esc_:code page.
+
+POST /api/escrow/:id/confirm Records confirmation for the authenticated user. If both parties have now confirmed: calls Paystack Transfer to release funds to recipient. Updates status to released. Calls updateScore(+1) for both users.
+
+Webhook handlers:
+
+charge.success where metadata.source = "escrow" Updates escrow status to funded. Notifies both parties.
+
+Admin overrides:
+
+POST /api/admin/escrow/:id/release — force release via Paystack Transfer POST /api/admin/escrow/:id/refund — force refund via Paystack Refund API
+
+Paystack endpoints Tomiwa calls:
+
+POST https://api.paystack.co/page
+
+POST https://api.paystack.co/transfer
+
+POST https://api.paystack.co/refund
+
+
+
+Tables to create:
+
+escrows (id, creator_user_id, recipient_user_id,
+
+         amount, description, payment_code,
+
+         paystack_page_id, paystack_reference,
+
+         creator_confirmed, recipient_confirmed,
+
+         status, created_at, released_at)
+
+
+
+
+
+Feature 5 — Admin
+
+Endpoints to build:
+
+GET /api/admin/transactions — all payments across groups, savings, escrow. Paginated.
+
+GET /api/admin/escrow/disputed — escrows with status = disputed.
+
+POST /api/admin/escrow/:id/release — calls Paystack Transfer, updates status.
+
+POST /api/admin/escrow/:id/refund — calls Paystack Refund, updates status.
+
+GET /api/admin/users — all users with score and status.
+
+POST /api/admin/users/:id/ban — sets user status to banned.
+
+All admin endpoints check role = admin on the JWT before doing anything.
+
+
+
+Central Webhook Handler
+
+Single file: api/webhooks/paystack.php
+
+First thing it does: verify Paystack signature:
+
+$signature = $_SERVER['HTTP_X_PAYSTACK_SIGNATURE'];
+
+$computed  = hash_hmac('sha512', file_get_contents('php://input'), PAYSTACK_SECRET);
+
+if ($signature !== $computed) { http_response_code(401); exit; }
+
+
+
+Then reads $event and $data->metadata->source and routes to the right handler function. This is one file Tomiwa owns entirely.
+
+
+
+Shared updateScore() Function
+
+// services/ScoreService.php
+
+function updateScore(int $userId, int $delta, string $reason): void {
+
+    // Read current score
+
+    // Add delta, clamp between 0 and 100
+
+    // Update users.ajo_score
+
+    // Insert into score_history
+
+}
+
+
+
+Every feature calls this. Nobody touches ajo_score directly in SQL.
+
+
+
+Shared Rules for Tomiwa
+
+All Paystack calls go through services/PaystackService.php. No raw curl calls scattered in feature files.
+
+Every endpoint returns:
+
+{ "status": true, "message": "Done", "data": { } }
+
+{ "status": false, "message": "What went wrong", "data": null }
+
+
+
+All secrets in .env. Never hardcoded.
+
+CORS headers set in one central config/cors.php — allows requests from the React frontend domain only.
+
+
+
+What They Agree on Before Writing a Single Line
+
+These two things must be agreed and documented before either person starts:
+
+The exact shape of every API response — Tomiwa writes a short response example for each endpoint, Kehad confirms he can work with it. Do this in a shared Notion page or Google Doc.
+
+The .env variables — Tomiwa sets up the backend .env and shares the variable names (not values) with Kehad so the frontend knows what's configured.
+
+After that they work completely independently.
+
+
+
+
+

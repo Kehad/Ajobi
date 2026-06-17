@@ -53,20 +53,7 @@ export const setupService = {
     return { success: true, data: { step_completed: 4, next_step: 5 } };
   },
   submitStep5: async (data: { language: string; profile_photo: File | null | string, email: string }): Promise<SetupFinalResponse> => {
-    return { 
-      success: true, 
-      data: { 
-        onboarding_complete: true, 
-        ajo_score: 58, 
-        score_tier: "Bronze", 
-        breakdown: { savings_consistency: 75, repayment_behaviour: 60, escrow_completion: 50, transaction_history: 30, account_maturity: 20, community_standing: 50 },
-        explanation: "Your score is 58. Strong savings habits detected. Score is limited by no transaction history yet. Join an Ajo group and start transacting to grow faster.",
-        improvement_tips: [
-          "Join an Ajo group and contribute consistently",
-          "Complete your first escrow transaction",
-          "Refer a friend to earn +3 points"
-        ]
-      } 
-    };
+    const response = await apiClient.post('/api/ajoscore/onboarding', data);
+    return response.data;
   }
 };

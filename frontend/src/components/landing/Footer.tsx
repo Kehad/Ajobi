@@ -60,14 +60,7 @@ export function Footer() {
                   Features
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="#"
-                  className="hover:text-ajobi-green transition-colors"
-                >
-                  Marketplace
-                </Link>
-              </li>
+
               <li>
                 <Link
                   href="#"

@@ -50,7 +50,7 @@ export function Steps() {
                 Unlock Services
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed px-4">
-                Get access to marketplace tools, insurance, and business
+                Get access to escrow tools, insurance, and business
                 loans at the touch of a button.
               </p>
             </div>

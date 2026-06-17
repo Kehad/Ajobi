@@ -1,13 +1,12 @@
 "use client";
 
-import { UserPlus, Store, ShieldCheck, CreditCard } from "lucide-react";
+import { UserPlus, ShieldCheck, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 export default function QuickActions() {
   const actions = [
     { label: "Join an Ajo Group", icon: UserPlus, href: "/dashboard/groups", color: "bg-[#F1F6F3] text-[#066B44]" },
-    { label: "Post a Listing", icon: Store, href: "/dashboard/marketplace/create", color: "bg-[#F1F6F3] text-[#066B44]" },
-    { label: "Create an Escrow", icon: ShieldCheck, href: "/dashboard/marketplace", color: "bg-[#F1F6F3] text-[#066B44]" },
+    { label: "Create an Escrow", icon: ShieldCheck, href: "/dashboard/escrow", color: "bg-[#F1F6F3] text-[#066B44]" },
     { label: "Loan Eligibility", icon: CreditCard, href: "#", color: "bg-[#F1F6F3] text-[#066B44]" },
   ];
 

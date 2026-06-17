@@ -21,12 +21,7 @@ export function Header() {
         >
           Features
         </Link>
-        <Link
-          href="#marketplace"
-          className="hover:text-ajobi-green transition-colors"
-        >
-          Marketplace
-        </Link>
+
       </nav>
       <div className="flex items-center gap-4">
         <Link

@@ -31,7 +31,8 @@ export interface UserData {
 }
 
 export interface LoginResponse {
-  success: boolean;
+  status: boolean;
+  message: string;
   data: {
     user_id: string;
     full_name: string;
@@ -44,7 +45,8 @@ export interface LoginResponse {
 }
 
 export interface RegisterResponse {
-  success: boolean;
+  status: boolean;
+  message: string;
   data: {
     user_id: string;
     full_name: string;
@@ -56,73 +58,37 @@ export interface RegisterResponse {
 
 export const authService = {
   login: async (credentials: any): Promise<LoginResponse> => {
-    // const response = await apiClient.post<LoginResponse>('/api/auth/login', ...);
-    const response = {
-      success: true,
-      data: {
-        user_id: "usr_a1b2c3d4",
-        full_name: "Emeka Obi",
-        token: "eyJhbGciOiJIUzI1NiJ9...",
-        email: credentials.email || "emeka@email.com",
-        ajo_score: 68,
-        score_tier: "Silver",
-        onboarding_complete: true
+    const response = await apiClient.post<LoginResponse>('/api/auth/login', credentials);
+    const data = response.data as any;
+    if (data.status === true || data.success === true) {
+      if (data.data?.token) {
+        localStorage.setItem('token', data.data.token);
       }
-    };
-
-    if (response.success && response.data?.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('userId', response.data.user_id);
+      if (data.data?.user_id) {
+        localStorage.setItem('userId', data.data.user_id);
+      }
     }
-    return response as LoginResponse;
+    return data;
   },
 
-  register: async (data: RegistrationFormValues): Promise<RegisterResponse> => {
-    // const response = await apiClient.post<RegisterResponse>('/api/auth/register', payload);
-    const response = {
-      success: true,
-      data: {
-        user_id: "usr_a1b2c3d4",
-        full_name: "Emeka Obi",
-        phone: "08012345678",
-        token: "eyJhbGciOiJIUzI1NiJ9...",
-        onboarding_complete: false
-      }
-    };
-
-    if (response.success && response.data?.token) {
-      localStorage.setItem('token', response.data.token);
+  register: async (payload: RegistrationFormValues): Promise<RegisterResponse> => {
+    const response = await apiClient.post<RegisterResponse>('/api/auth/register', payload);
+    const data = response.data as any;
+    if ((data.status === true || data.success === true) && data.data?.token) {
+      localStorage.setItem('token', data.data.token);
     }
-    return response as RegisterResponse;
+    return data;
   },
 
-  getCurrentUser: async (): Promise<{ success: boolean; data: UserData }> => {
-    // const response = await apiClient.get('/api/auth/me');
-    return {
-      success: true,
-      data: {
-        user_id: "usr_a1b2c3d4",
-        full_name: "Emeka Obi",
-        phone: "08012345678",
-        email: "emeka@email.com",
-        occupation: "Trader",
-        state: "Lagos",
-        lga: "Surulere",
-        language: "English",
-        ajo_score: 68,
-        score_tier: "Silver",
-        profile_photo: "https://storage.url/photo.jpg",
-        onboarding_complete: true,
-        member_since: "2024-01-15T00:00:00Z",
-        squad_wallet_balance: 45000
-      }
-    };
+  getCurrentUser: async (): Promise<{ status: boolean; message: string; data: UserData }> => {
+    const response = await apiClient.get('/api/auth/user');
+    return response.data;
   },
   
   logout: async () => {
     if (typeof window !== 'undefined') {
       try {
-        // await apiClient.post('/api/logout');
+        await apiClient.post('/api/auth/logout');
       } catch (e) {
         console.error("Logout failed on server", e);
       }
