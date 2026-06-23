@@ -35,7 +35,7 @@ export const useCreateEscrow = () => {
       
       const response = await escrowService.createEscrow(payload);
       
-      if (response.success && response.data?.escrow_id) {
+      if (response.status && response.data?.escrow_id) {
         // Automatically generate escrow virtual account immediately after creation
         try {
           await escrowService.generateVirtualAccount(response.data.escrow_id);

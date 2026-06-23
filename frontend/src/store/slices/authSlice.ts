@@ -25,7 +25,7 @@ export const fetchCurrentUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await authService.getCurrentUser();
-      if (response.success) {
+      if (response.status) {
         return response.data;
       }
       return null;

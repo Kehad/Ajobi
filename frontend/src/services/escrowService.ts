@@ -26,7 +26,7 @@ export interface EscrowResponse {
 }
 
 export interface EscrowVirtualAccountResponse {
-  status: boolean;
+  status: boolean | "success";
   message: string;
   data: any;
 }
