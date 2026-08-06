@@ -67,7 +67,7 @@ export const useRegistrationForm = () => {
 
       console.log("Email sent:", result.text);
     } catch (err) {
-      console.error("Failed to send verification email:", err);
+      console.error("Failed to send verification email", err);
     }
   };
 
