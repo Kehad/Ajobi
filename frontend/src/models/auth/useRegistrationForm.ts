@@ -7,6 +7,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter } from "next/navigation";
 import { isAxiosError } from "axios";
+import emailjs from "@emailjs/browser";
 import { useAppDispatch } from "@/store";
 import { registerUser } from "@/store/slices/authSlice";
 
@@ -47,6 +48,29 @@ export const useRegistrationForm = () => {
   const dispatch = useAppDispatch();
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const sendVerificationEmail = async (email: string, name: string, verification_link: string) => {
+    try {
+      const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "YOUR_SERVICE_ID";
+      const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "YOUR_TEMPLATE_ID";
+      const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "YOUR_PUBLIC_KEY";
+
+      const result = await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          email: email,
+          name: name,
+          verification_link: verification_link,
+        },
+        publicKey
+      );
+
+      console.log("Email sent:", result.text);
+    } catch (err) {
+      console.error("Failed to send verification email:", err);
+    }
+  };
+
   const {
     register,
     handleSubmit,
@@ -70,8 +94,17 @@ export const useRegistrationForm = () => {
       console.log("Registration successful:", response);
       
       setIsSuccess(true);
+
+      const resData = response?.data || {};
+      const recipientName = resData.name || resData.full_name || data.fullName;
+      const recipientEmail = resData.email || data.email || "";
+      const verificationLink = resData.verification_link || "";
+
+      if (recipientEmail && verificationLink) {
+        await sendVerificationEmail(recipientEmail, recipientName, verificationLink);
+      }
       
-      if (response.data.onboarding_complete === "false" || response.data.onboarding_complete === false) {
+      if (resData.onboarding_complete === "false" || resData.onboarding_complete === false || !resData.onboarding_complete) {
         router.push("/setup");
       } else {
         router.push("/dashboard");

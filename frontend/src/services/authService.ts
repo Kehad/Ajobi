@@ -45,14 +45,17 @@ export interface LoginResponse {
 }
 
 export interface RegisterResponse {
-  status: boolean;
+  status: boolean | string;
   message: string;
   data: {
-    user_id: string;
-    full_name: string;
-    phone: string;
-    token: string;
-    onboarding_complete: boolean | string;
+    user_id?: string;
+    full_name?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    token?: string;
+    verification_link?: string;
+    onboarding_complete?: boolean | string;
   };
 }
 
@@ -60,7 +63,7 @@ export const authService = {
   login: async (credentials: any): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>('/api/auth/login', credentials);
     const data = response.data as any;
-    if (data.status === true || data.success === true) {
+    if (data.status === true || data.status === 'success' || data.success === true) {
       if (data.data?.token) {
         localStorage.setItem('token', data.data.token);
       }
@@ -72,9 +75,15 @@ export const authService = {
   },
 
   register: async (payload: RegistrationFormValues): Promise<RegisterResponse> => {
-    const response = await apiClient.post<RegisterResponse>('/api/auth/register', payload);
+    const body = {
+      full_name: payload.fullName || (payload as any).full_name,
+      phone: payload.phoneNumber || (payload as any).phone,
+      email: payload.email,
+      password: payload.password,
+    };
+    const response = await apiClient.post<RegisterResponse>('/api/auth/register', body);
     const data = response.data as any;
-    if ((data.status === true || data.success === true) && data.data?.token) {
+    if ((data.status === true || data.status === 'success' || data.success === true) && data.data?.token) {
       localStorage.setItem('token', data.data.token);
     }
     return data;

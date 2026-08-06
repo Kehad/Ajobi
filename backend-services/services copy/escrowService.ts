@@ -10,7 +10,7 @@ export interface CreateEscrowPayload {
   listing_id?: string | number;
 }
 
-export interface EscrowResponse {
+  export interface EscrowResponse {
   success: boolean;
   message: string;
   data: {

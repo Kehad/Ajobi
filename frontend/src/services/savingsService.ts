@@ -31,8 +31,10 @@ export const savingsService = {
     return response.data;
   },
 
-  getGoals: async () => {
-    const response = await apiClient.get('/api/savings/mine');
+  getGoals: async (userId?: string) => {
+    const id = userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '');
+    const url = id ? `/api/savings/mine/${id}` : `/api/savings/mine`;
+    const response = await apiClient.get(url);
     return response.data;
   },
 
@@ -46,23 +48,42 @@ export const savingsService = {
     return response.data;
   },
 
-  createGoal: async (payload: { name: string; target_amount: number; deadline: string; frequency: string }) => {
-    const response = await apiClient.post('/api/savings/create', payload);
+  createGoal: async (payload: { name: string; target_amount: number | string; deadline: string; frequency: string }, userId?: string) => {
+    const id = userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '');
+    const url = id ? `/api/savings/create/${id}` : `/api/savings/create`;
+    const response = await apiClient.post(url, payload);
     return response.data;
   },
 
-  getGoalDetail: async (id: string) => {
-    const response = await apiClient.get(`/api/savings/${id}`);
+  getGoalDetail: async (id: string, userId?: string) => {
+    const uId = userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '');
+    const url = uId ? `/api/savings/details/${id}/${uId}` : `/api/savings/${id}`;
+    const response = await apiClient.get(url);
     return response.data;
   },
 
-  breakGoal: async (id: string) => {
-    const response = await apiClient.post(`/api/savings/${id}/break`);
+  breakGoal: async (id: string, userId?: string) => {
+    const uId = userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '');
+    const url = uId ? `/api/savings/${id}/break/${uId}` : `/api/savings/${id}/break`;
+    const response = await apiClient.post(url, { goal_id: id });
     return response.data;
   },
 
-  setupDebit: async (id: string) => {
-    const response = await apiClient.post(`/api/savings/${id}/setup-debit`);
+  setupDebit: async (userId?: string) => {
+    const id = userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '');
+    const url = id ? `/api/savings/setup/${id}` : `/api/savings/setup`;
+    const response = await apiClient.post(url);
+    return response.data;
+  },
+
+  createSavingsRecipient: async (goalId: string, data: { name: string; account_number: string; bank_code: string }, userId?: string) => {
+    const id = userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '');
+    const response = await apiClient.post(`/api/savings/receipt/${goalId}/${id}`, data);
+    return response.data;
+  },
+
+  savingsWithdrawal: async (recipientId: string, goalId: string) => {
+    const response = await apiClient.post(`/api/savings/withdraw/${recipientId}`, { goal_id: goalId });
     return response.data;
   }
 };

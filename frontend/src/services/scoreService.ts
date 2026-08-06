@@ -66,28 +66,28 @@ export interface EligibilityData {
 }
 
 export const scoreService = {
-  getAjoScore: async (userId?: string) =>  {
-    const response = await apiClient.get(`/api/ajoscore/me`);
+  getAjoScore: async (userId?: string) => {
+    const id = userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '');
+    const url = id ? `/api/score/${id}` : `/api/score/me`;
+    const response = await apiClient.get(url);
     return response.data;
   },
 
-  submitOnboarding: async (payload: { occupation: string; monthly_income: number; earning_duration: string }) => {
-    const response = await apiClient.post(`/api/ajoscore/onboarding`, payload);
+  submitOnboarding: async (payload: { occupation: string; monthly_income: number; earning_duration: string; email?: string }) => {
+    const response = await apiClient.post(`/api/onboarding/step5`, payload);
     return response.data;
   },
 
-  uploadBankStatement: async (formData: FormData) => {
-    // Note: formData must be passed to support multipart/form-data
-    const response = await apiClient.post(`/api/ajoscore/bank-statement`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+  uploadBankStatement: async (formData: FormData | { email?: string }) => {
+    const isFormData = formData instanceof FormData;
+    const response = await apiClient.post(`/api/bank-statement/status`, formData, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
     });
     return response.data;
   },
 
-  getScoreHistory: async (userId: string, days: 30 | 60 | 90 = 30) => {
-    const response = await apiClient.get(`/api/score/${userId}/history`, { params: { days } });
+  getScoreHistory: async (userId: string, period: 30 | 60 | 90 = 30) => {
+    const response = await apiClient.get(`/api/score/${userId}/${period}/history`);
     return response.data;
   },
 
