@@ -35,11 +35,10 @@ export default function FinalStep({ formData, updateForm, submitStep, prevStep, 
   const validateAndSetFile = (file: File) => {
     setLocalError(null);
 
-    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
-    const isValidType = validTypes.includes(file.type) || /\.(jpeg|png|jpg)$/i.test(file.name);
+    const isImage = file.type.startsWith("image/") || /\.(jpeg|png|jpg|webp|gif|heic|heif)$/i.test(file.name);
 
-    if (!isValidType) {
-      setLocalError("Please upload a valid image file (JPEG, PNG, or JPG).");
+    if (!isImage) {
+      setLocalError("Please upload a valid image file (JPEG, PNG, WebP, or JPG).");
       return;
     }
 
@@ -57,6 +56,7 @@ export default function FinalStep({ formData, updateForm, submitStep, prevStep, 
     if (file) {
       validateAndSetFile(file);
     }
+    e.target.value = "";
   };
 
   const handleRemovePhoto = (e?: React.MouseEvent) => {
