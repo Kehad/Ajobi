@@ -17,6 +17,7 @@ export interface SetupFormData {
   paidBackFully: string;
   paidOnTime: string;
   language: string;
+  profilePhoto?: File | null;
 }
 
 export const useSetupWizard = () => {
@@ -59,6 +60,7 @@ export const useSetupWizard = () => {
     paidBackFully: "",
     paidOnTime: "",
     language: "",
+    profilePhoto: null,
   });
 
   const updateForm = (key: string, value: any) => {
@@ -157,7 +159,7 @@ export const useSetupWizard = () => {
       } else if (currentStep === 5) {
         const res = await setupService.submitStep5({
           language: formData.language,
-          profile_photo: null,
+          profile_photo: formData.profilePhoto || null,
           email: email
         });
         setScoreData(res.data);

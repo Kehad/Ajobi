@@ -13,6 +13,8 @@ interface GroupHeaderProps {
   totalCycles: number;
   isJoining: boolean;
   isMember: boolean;
+  joinError?: string | null;
+  inviteCode?: string;
   onJoin: (code?: string) => void;
   onPayment: () => void;
   isPaying: boolean;
@@ -33,12 +35,14 @@ export default function GroupHeader({
   onJoin,
   isJoining,
   isMember,
+  joinError,
+  inviteCode,
   virtualAccount,
   onPayment,
   isPaying
 }: GroupHeaderProps) {
-  const [inviteCode, setInviteCode] = useState("");
-  const progress = (currentCycle / totalCycles) * 100;
+  // const [inviteCode, setInviteCode] = useState("");
+  const progress = totalCycles > 0 ? (currentCycle / totalCycles) * 100 : 0;
 
   return (
     <div className="space-y-4">
@@ -68,47 +72,55 @@ export default function GroupHeader({
           </div>
 
            {/* Right side with actions */}
-           <div className="flex flex-wrap items-center gap-3 shrink-0">
-             {!isMember ? (
-               <div className="flex items-center gap-2">
-                 <div className="relative group">
-                   <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#066B44] transition-colors" />
-                   <input 
-                     type="text" 
-                     placeholder="Invite Code (Optional)"
-                     value={inviteCode}
-                     onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                     className="pl-9 pr-4 py-2.5 rounded-xl border border-[#E8EFE8] text-[13px] font-bold outline-none focus:border-[#066B44] bg-[#FAFCFB] transition-all w-[180px]"
-                   />
+           <div className="flex flex-col items-end gap-2 shrink-0">
+             <div className="flex flex-wrap items-center gap-3">
+               {!isMember ? (
+                 <div className="flex items-center gap-2">
+                   {/* <div className="relative group">
+                     <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#066B44] transition-colors" />
+                     <input 
+                       type="text" 
+                       placeholder={inviteCode ? `Invite: ${inviteCode}` : "Invite Code (Optional)"}
+                       value={inviteCode}
+                       onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                       className="pl-9 pr-4 py-2.5 rounded-xl border border-[#E8EFE8] text-[13px] font-bold outline-none focus:border-[#066B44] bg-[#FAFCFB] transition-all w-[190px]"
+                     />
+                   </div> */}
+                   <button 
+                     onClick={() => onJoin(inviteCode)}
+                    //  onClick={() => onJoin(inviteCode || defaultInviteCode)}
+                     disabled={isJoining}
+                     className="px-6 py-2.5 rounded-xl bg-[#066B44]  cursor-pointer hover:bg-[#055737] text-white text-[13px] font-extrabold shadow-md shadow-[#066B44]/10 transition-all flex items-center gap-2 disabled:opacity-70"
+                   >
+                     {isJoining ? "Joining..." : "Join group"}
+                   </button>
                  </div>
-                 <button 
-                   onClick={() => onJoin(inviteCode)}
-                   disabled={isJoining}
-                   className="px-6 py-2.5 rounded-xl bg-[#066B44] hover:bg-[#055737] text-white text-[13px] font-extrabold shadow-md shadow-[#066B44]/10 transition-all flex items-center gap-2 disabled:opacity-70"
-                 >
-                   {isJoining ? "Joining..." : "Join group"}
+               ) : (
+                 <button className="px-5 py-2.5 rounded-xl bg-white border border-[#E8EFE8] text-[13px] font-bold text-gray-700 hover:bg-[#F9FCF9] transition-colors">
+                   Share Group
                  </button>
-               </div>
-             ) : (
-               <button className="px-5 py-2.5 rounded-xl bg-white border border-[#E8EFE8] text-[13px] font-bold text-gray-700 hover:bg-[#F9FCF9] transition-colors">
-                 Share Group
-               </button>
+               )}
+              
+               {isMember && (
+                 <button 
+                   onClick={onPayment}
+                   disabled={isPaying || status.toLowerCase().includes('awaiting')}
+                   className={`px-5 py-2.5 rounded-xl text-[13px] font-extrabold shadow-md transition-all ${
+                     status.toLowerCase().includes('awaiting')
+                       ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none border border-gray-200"
+                       : "bg-[#066B44] hover:bg-[#055737] text-white shadow-[#066B44]/10 disabled:opacity-70"
+                   }`}
+                 >
+                   {isPaying ? "Processing..." : status.toLowerCase().includes('awaiting') ? "Awaiting Commencement" : "Make Payment"}
+                 </button>
+               )}
+             </div>
+             {joinError && (
+               <p className="text-[12px] font-bold text-red-500 bg-red-50 px-3 py-1 rounded-lg border border-red-100">
+                 {joinError}
+               </p>
              )}
-            
-            {isMember && (
-              <button 
-                onClick={onPayment}
-                disabled={isPaying || status.toLowerCase().includes('awaiting')}
-                className={`px-5 py-2.5 rounded-xl text-[13px] font-extrabold shadow-md transition-all ${
-                  status.toLowerCase().includes('awaiting')
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none border border-gray-200"
-                    : "bg-[#066B44] hover:bg-[#055737] text-white shadow-[#066B44]/10 disabled:opacity-70"
-                }`}
-              >
-                {isPaying ? "Processing..." : status.toLowerCase().includes('awaiting') ? "Awaiting Commencement" : "Make Payment"}
-              </button>
-            )}
-          </div>
+           </div>
         </div>
 
         {/* Progress cycle slider */}

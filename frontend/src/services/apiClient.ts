@@ -15,7 +15,8 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
+      const token = 'F45E1A8D32C6B89E4D2F1A6C3B5E9F7D8A1B2C4E6IDJLSJOE9G1H2I3J4K5L6M7N8ODKJSHSJJ';
+      // const token = localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }

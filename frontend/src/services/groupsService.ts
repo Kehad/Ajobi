@@ -10,7 +10,7 @@ export interface CreateGroupPayload {
   rotation_type: 'random' | 'manual';
   grace_period_hours: 24 | 48;
   description?: string;
-  joining_method?: 'manual' | 'automatch';
+  joining_method: 'manual' | 'automatch';
 }
 
 export interface BrowseGroupsParams {

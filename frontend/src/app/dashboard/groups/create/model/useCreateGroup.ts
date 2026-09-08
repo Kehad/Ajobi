@@ -12,6 +12,7 @@ export interface CreateGroupFormData {
   rotationOrder: "Random Draw" | "Fixed Order";
   gracePeriod: "24 Hours" | "48 Hours";
   description: string;
+  joiningMethod: "manual" | "automatch";
 }
 
 export const useCreateGroup = () => {
@@ -29,7 +30,8 @@ export const useCreateGroup = () => {
     minScore: 650,
     rotationOrder: "Random Draw",
     gracePeriod: "48 Hours",
-    description: ""
+    description: "",
+    joiningMethod: "manual"
   });
 
   const updateField = <K extends keyof CreateGroupFormData>(
@@ -65,26 +67,34 @@ export const useCreateGroup = () => {
          frequency: formData.frequency.toLowerCase() as 'weekly' | 'monthly',
          max_members: formData.maxMembers,
          // Mapped from 400-1000 UI range down to the requested backend 40-100 format
-         min_ajo_score: Math.round(formData.minScore / 10),
+         min_ajo_score: Math.round(formData.minScore),
          rotation_type: formData.rotationOrder === 'Random Draw' ? 'random' : 'manual' as 'random' | 'manual',
          grace_period_hours: formData.gracePeriod === '24 Hours' ? 24 : 48 as 24 | 48,
+         joining_method: formData.joiningMethod,
          description: formData.description
        };
  
        const response = await groupsService.createGroup(payload);
        console.log("group creation response", response);
-       
-       if (response.success && response.data?.group_id) {
-         // Automatically generate group virtual account immediately after creation
-         try {
-           await groupsService.createGroupVirtualAccount(response.data.group_id);
-           console.log("Group virtual account generated successfully");
-         } catch (vaError) {
-           console.error("Failed to generate group virtual account", vaError);
-         }
-         
-         router.push(`/dashboard/groups/${response.data.group_id}`);
-       } else {
+              if (response.success && response.data?.group_id) {
+          const newGroupId = response.data.group_id;
+          // Automatically generate group virtual account and payment form immediately after creation
+          try {
+            await groupsService.createGroupVirtualAccount(newGroupId);
+            console.log("Group virtual account generated successfully");
+          } catch (vaError) {
+            console.error("Failed to generate group virtual account", vaError);
+          }
+
+          try {
+            await groupsService.createGroupPaymentForm(newGroupId, userId || undefined);
+            console.log("Group payment form generated successfully");
+          } catch (gpfError) {
+            console.error("Failed to generate group payment form", gpfError);
+          }
+          
+          router.push(`/dashboard/groups/${newGroupId}?action=created`);
+        } else {
          setError(response.message || "Failed to create group. Please check your inputs.");
        }
  

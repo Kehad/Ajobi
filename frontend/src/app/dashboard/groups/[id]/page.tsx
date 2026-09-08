@@ -1,6 +1,7 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useGroupDetails } from "./model/useGroupDetails";
 import GroupHeader from "./parts/GroupHeader";
@@ -10,11 +11,17 @@ import ContributionHistory from "./parts/ContributionHistory";
 import StatusWidget from "./parts/StatusWidget";
 import CreatorControls from "./parts/CreatorControls";
 import TrustLevel from "./parts/TrustLevel";
+import TopRightAlert from "@/components/ui/TopRightAlert";
+import WithdrawalModal from "./parts/WithdrawalModal";
 
 export default function GroupDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
-  
+  const searchParams = useSearchParams();
+  const actionParam = searchParams?.get("action");
+
+  const [isWithdrawalOpen, setIsWithdrawalOpen] = useState(false);
+
   const {
     isLoading,
     groupInfo,
@@ -24,13 +31,37 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
     userStatus,
     virtualAccount,
     isPaying,
+    isActivating,
     handleInitiatePayment,
+    handleActivateGroup,
     handleJoinGroup,
     isJoining,
-    isMember
+    joinError,
+    isMember,
+    alertInfo,
+    setAlertInfo,
+    refetchDetails
   } = useGroupDetails(id);
 
-  console.log(isMember);
+  const [urlAlert, setUrlAlert] = useState<{ title: string; description: string; variant?: "success" | "default" | "destructive" } | null>(null);
+
+  useEffect(() => {
+    if (actionParam === "created") {
+      setUrlAlert({
+        title: "Group Created Successfully!",
+        description: "Your Ajo group has been created and initialized. You can now invite members and manage rotation.",
+        variant: "success"
+      });
+    } else if (actionParam === "joined") {
+      setUrlAlert({
+        title: "Group Joined Successfully!",
+        description: "You have joined this Ajo group. Your rotation position and membership are now active.",
+        variant: "success"
+      });
+    }
+  }, [actionParam]);
+
+  const activeAlert = alertInfo || urlAlert;
 
   if (isLoading) {
     return (
@@ -43,6 +74,25 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="w-full mx-auto pb-12">
+      {activeAlert && (
+        <TopRightAlert 
+          title={activeAlert.title}
+          description={activeAlert.description}
+          variant={activeAlert.variant || "success"}
+          durationMs={15000}
+          onClose={() => {
+            setAlertInfo(null);
+            setUrlAlert(null);
+          }}
+        />
+      )}
+
+      <WithdrawalModal
+        groupId={id}
+        isOpen={isWithdrawalOpen}
+        onClose={() => setIsWithdrawalOpen(false)}
+        onSuccess={refetchDetails}
+      />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mt-4">
         
@@ -58,6 +108,8 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
             totalCycles={groupInfo.totalCycles}
             onJoin={handleJoinGroup}
             isJoining={isJoining}
+            joinError={joinError}
+            inviteCode={groupInfo.inviteCode}
             isMember={isMember}
             virtualAccount={virtualAccount}
             onPayment={handleInitiatePayment}
@@ -91,7 +143,11 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
               methodDetails={userStatus.methodDetails}
             />
 
-            <CreatorControls />
+            <CreatorControls 
+              onActivateGroup={handleActivateGroup}
+              onOpenWithdrawal={() => setIsWithdrawalOpen(true)}
+              isActivating={isActivating}
+            />
 
             <TrustLevel />
 

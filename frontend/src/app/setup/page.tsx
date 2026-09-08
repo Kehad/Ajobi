@@ -58,19 +58,19 @@ export default function SetupWizard() {
             AjoBI
           </Link>
         </div>
-        <div className="hidden md:flex items-center gap-8 text-xs font-medium text-gray-500">
+        {/* <div className="hidden md:flex items-center gap-8 text-xs font-medium text-gray-500">
           <span className="cursor-pointer hover:text-gray-900 transition-colors">How it Works</span>
           <span className="cursor-pointer hover:text-gray-900 transition-colors">Benefits</span>
           <span className="cursor-pointer hover:text-gray-900 transition-colors">Security</span>
-        </div>
-        <div className="flex items-center gap-6">
+        </div> */}
+        {/* <div className="flex items-center gap-6">
           <Link href="/login" className="text-sm font-bold text-ajobi-green hover:underline transition-colors hidden sm:block">
             Login
           </Link>
           <Link href="/onboarding" className="bg-ajobi-green hover:bg-ajobi-green-dark text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-sm">
             Join Now
           </Link>
-        </div>
+        </div> */}
       </header>
 
       {/* Main Content */}

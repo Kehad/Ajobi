@@ -154,12 +154,12 @@ export const joinGroup = createAsyncThunk(
   async ({ groupId, payload }: { groupId: string; payload: JoinGroupPayload }, { rejectWithValue }) => {
     try {
       const response = await groupsService.joinGroup(groupId, payload);
-      if (response.success) {
+      if (response.success || response.status === 'success' || response.data) {
         return response.data;
       }
-      return rejectWithValue('Failed to join group');
+      return rejectWithValue(response.message || response.error?.message || 'Failed to join group');
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.error?.message || error.message);
+      return rejectWithValue(error.response?.data?.error?.message || error.response?.data?.message || error.message);
     }
   }
 );

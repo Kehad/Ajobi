@@ -63,7 +63,7 @@ export default function GroupsOverviewPage() {
       </div>
 
       {/* Conditional Rendering based on Tabs */}
-      {activeTab === 'my' && <MyGroups groups={myGroups} />}
+      {activeTab === 'my' && <MyGroups groups={myGroups} setActiveTab={setActiveTab} />}
 
       {activeTab === 'browse' && (
         <BrowseGroups 

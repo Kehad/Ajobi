@@ -53,8 +53,8 @@ export const useGroups = () => {
 
   // Matching Engine states
   const [searchQuery, setSearchQuery] = useState("");
-  const [matchAmount, setMatchAmount] = useState("50,000");
-  const [matchFrequency, setMatchFrequency] = useState<'Monthly' | 'Weekly'>('Monthly');
+  const [matchAmount, setMatchAmount] = useState("");
+  const [matchFrequency, setMatchFrequency] = useState<'Monthly' | 'Weekly' | "">("Monthly");
   const [isMatching, setIsMatching] = useState(false);
   const [showMatches, setShowMatches] = useState(false);
 
@@ -75,11 +75,11 @@ export const useGroups = () => {
     setIsMatching(true);
     setShowMatches(false);
     try {
-      const numericAmt = parseFloat(matchAmount.replace(/,/g, "")) || 10000;
+      const numericAmt = parseFloat(matchAmount.replace(/,/g, "")) || 0;
       const resp = await groupsService.autoMatchGroup({
-        contribution_amount: 5000,
-        // frequency: matchFrequency.toLowerCase() as 'weekly' | 'monthly',
-        frequency: 'weekly',
+        contribution_amount: numericAmt,
+        frequency: matchFrequency.toLowerCase() as 'weekly' | 'monthly',
+        // frequency: 'weekly',
         user_id: localStorage.getItem("userId") as string,
       });
       console.log(resp, "resp")

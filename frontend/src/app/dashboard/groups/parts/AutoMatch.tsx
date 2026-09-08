@@ -7,8 +7,8 @@ import { MatchedGroup } from "../model/useGroups";
 interface AutoMatchProps {
   matchAmount: string;
   setMatchAmount: (v: string) => void;
-  matchFrequency: 'Monthly' | 'Weekly';
-  setMatchFrequency: (v: 'Monthly' | 'Weekly') => void;
+  matchFrequency: 'Monthly' | 'Weekly' | '';
+  setMatchFrequency: (v: 'Monthly' | 'Weekly' | '') => void;
   isMatching: boolean;
   showMatches: boolean;
   onFindMatch: () => void;
@@ -64,7 +64,7 @@ export default function AutoMatch({
                   const formatted = Number(val).toLocaleString();
                   setMatchAmount(formatted);
                 }}
-                className="text-[28px] font-black text-gray-900 outline-none w-full bg-transparent"
+                className="text-[28px] font-black text-gray-700 outline-none w-full bg-transparent"
                 placeholder="50,000"
               />
             </div>
@@ -92,7 +92,7 @@ export default function AutoMatch({
           <button 
             onClick={onFindMatch}
             disabled={isMatching}
-            className="w-full bg-[#066B44] hover:bg-[#055737] disabled:opacity-80 text-white py-4 rounded-xl text-[15px] font-black shadow-[0_4px_20px_rgba(6,107,68,0.3)] transition-all flex items-center justify-center gap-2.5"
+            className="w-full bg-[#066B44] cursor-pointer hover:bg-[#055737] disabled:opacity-80 text-white py-4 rounded-xl text-[15px] font-black shadow-[0_4px_20px_rgba(6,107,68,0.3)] transition-all flex items-center justify-center gap-2.5"
           >
             {isMatching ? (
               <Loader2 className="w-5 h-5 animate-spin" />

@@ -29,7 +29,7 @@ export default function CreateForm({ formData, updateField }: CreateFormProps) {
               placeholder="e.g. Lagos Traders Union"
               value={formData.name}
               onChange={(e) => updateField("name", e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-[#066B44] text-[14px] font-medium text-gray-800 transition-all outline-none shadow-inner"
+              className="w-full   px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-[#066B44] text-[14px] font-medium text-gray-800 transition-all outline-none shadow-inner"
             />
           </div>
 
@@ -44,7 +44,7 @@ export default function CreateForm({ formData, updateField }: CreateFormProps) {
             />
           </div>
 
-          <div className="md:col-span-2 space-y-2.5">
+          <div className="space-y-2.5">
             <label className="block text-[12px] font-bold text-gray-700 uppercase tracking-wider">Contribution Frequency</label>
             <div className="bg-gray-50 p-1 rounded-xl flex gap-1 w-fit border border-gray-100 shadow-inner">
               {(['Weekly', 'Monthly'] as const).map((freq) => (
@@ -52,13 +52,33 @@ export default function CreateForm({ formData, updateField }: CreateFormProps) {
                   key={freq}
                   type="button"
                   onClick={() => updateField("frequency", freq)}
-                  className={`px-8 py-2.5 rounded-lg text-[12px] font-extrabold transition-all ${
+                  className={`px-8 py-2.5 rounded-lg cursor-pointer text-[12px] font-extrabold transition-all ${
                     formData.frequency === freq 
                       ? 'bg-white text-[#066B44] shadow-sm border border-gray-100' 
                       : 'text-gray-500 hover:text-gray-800'
                   }`}
                 >
                   {freq}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <label className="block text-[12px] font-bold text-gray-700 uppercase tracking-wider">Joining Method</label>
+            <div className="bg-gray-50 p-1 rounded-xl flex gap-1 w-fit border border-gray-100 shadow-inner">
+              {(['manual', 'automatch'] as const).map((joiningMethod) => (
+                <button
+                  key={joiningMethod}
+                  type="button"
+                  onClick={() => updateField("joiningMethod", joiningMethod)}
+                  className={`px-8 py-2.5 rounded-lg cursor-pointer capitalize text-[12px] font-extrabold transition-all ${
+                    formData.joiningMethod === joiningMethod 
+                      ? 'bg-white text-[#066B44] shadow-sm border border-gray-100' 
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  {joiningMethod}
                 </button>
               ))}
             </div>
@@ -104,16 +124,16 @@ export default function CreateForm({ formData, updateField }: CreateFormProps) {
             </div>
             <input 
               type="range" 
-              min={400} 
-              max={1000} 
-              step={10}
+              min={20} 
+              max={100} 
+              step={1}
               value={formData.minScore}
               onChange={(e) => updateField("minScore", parseInt(e.target.value))}
               className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-[#066B44] outline-none"
             />
             <div className="flex justify-between text-[10px] font-extrabold text-gray-400 uppercase">
-              <span>Entry Level (400)</span>
-              <span>Elite (1000)</span>
+              <span>Entry Level (20)</span>
+              <span>Elite (100)</span>
             </div>
           </div>
         </div>

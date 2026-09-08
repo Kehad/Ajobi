@@ -1,20 +1,35 @@
 "use client";
 
-import { UserPlus, UserMinus, RefreshCw, ChevronRight } from "lucide-react";
+import { UserPlus, Power, Wallet, RefreshCw, ChevronRight, Loader2 } from "lucide-react";
 
-export default function CreatorControls() {
+interface CreatorControlsProps {
+  onActivateGroup?: () => void;
+  onOpenWithdrawal?: () => void;
+  isActivating?: boolean;
+}
+
+export default function CreatorControls({ onActivateGroup, onOpenWithdrawal, isActivating }: CreatorControlsProps) {
   const actions = [
     { 
-      label: "Invite Member", 
-      subtitle: "3 slots remaining in group", 
-      icon: UserPlus, 
-      color: "text-emerald-600 bg-emerald-50" 
+      label: "Activate Group", 
+      subtitle: "Commence rotation & active status", 
+      icon: Power, 
+      color: "text-[#066B44] bg-[#F1F6F3]",
+      onClick: onActivateGroup,
+      loading: isActivating
     },
     { 
-      label: "Remove Flagged", 
-      subtitle: "Obinna K. has 1 violation", 
-      icon: UserMinus, 
-      color: "text-red-500 bg-red-50" 
+      label: "Withdraw Payout", 
+      subtitle: "Queue group transfer recipient", 
+      icon: Wallet, 
+      color: "text-purple-600 bg-purple-50",
+      onClick: onOpenWithdrawal
+    },
+    { 
+      label: "Invite Member", 
+      subtitle: "Share invite code with new members", 
+      icon: UserPlus, 
+      color: "text-emerald-600 bg-emerald-50" 
     },
     { 
       label: "Edit Rotation", 
@@ -36,11 +51,13 @@ export default function CreatorControls() {
           return (
             <button 
               key={i}
-              className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-[#F1F6F3] hover:border-[#066B44]/20 bg-white hover:bg-[#F9FCF9] transition-all text-left group"
+              onClick={act.onClick}
+              disabled={act.loading}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-[#F1F6F3] hover:border-[#066B44]/20 bg-white hover:bg-[#F9FCF9] transition-all text-left group cursor-pointer disabled:opacity-70"
             >
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${act.color}`}>
-                  <Icon className="w-5 h-5" />
+                  {act.loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Icon className="w-5 h-5" />}
                 </div>
                 <div>
                   <p className="text-[13px] font-extrabold text-gray-800 group-hover:text-[#066B44] transition-colors">{act.label}</p>
