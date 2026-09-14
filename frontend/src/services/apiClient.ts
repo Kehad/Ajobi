@@ -45,7 +45,8 @@ apiClient.interceptors.response.use(
   (response) => {
     // Some backend endpoints return HTTP 200 but indicate an error in the payload
     if (response.data && (response.data.status === false || response.data.success === false || response.data.success === "false")) {
-      const message = response.data.error?.message || response.data.message || 'An error occurred';
+      const message = response.data.error?.message || response.data.message || 'An error occurreded';
+      console.log('apiclient', message)
       return Promise.reject(new ApiError(200, message, response.data));
     }
     return response;
@@ -55,7 +56,8 @@ apiClient.interceptors.response.use(
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
       const { status, data } = error.response;
-      const message = data?.message || error.message || 'An error occurred';
+      const message = data?.message || error.message || 'An error occurreded';
+      console.log('apiClient error', message)
       return Promise.reject(new ApiError(status, message, data));
     } else if (error.request) {
       // The request was made but no response was received

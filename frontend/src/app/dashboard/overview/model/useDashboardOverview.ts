@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { fetchMyGroups } from '@/store/slices/groupsSlice';
-import { fetchSavingsOverview } from '@/store/slices/savingsSlice';
+// import { fetchSavingsOverview } from '@/store/slices/savingsSlice';
 import { fetchProfile } from '@/store/slices/settingsSlice';
 import { fetchAjoScore, fetchEligibility } from '@/store/slices/scoreSlice';
 import { userService, KYCData } from '@/services/userService';
@@ -87,7 +87,7 @@ export const useDashboardOverview = () => {
     const userId = user?.user_id; 
     
     dispatch(fetchMyGroups(userId));
-    dispatch(fetchSavingsOverview());
+    // dispatch(fetchSavingsOverview());
     dispatch(fetchProfile());
     dispatch(fetchAjoScore(userId));
     dispatch(fetchEligibility(userId));
