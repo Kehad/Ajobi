@@ -47,7 +47,8 @@ export interface CreateSavingsGoalPayload {
 }
 
 export interface CreateSavingsGoalResponse {
-  success: boolean;
+  success?: boolean;
+  status?: boolean | string;
   goal_id?: string;
   instalment_amount?: string | number;
   periods?: number;
@@ -58,6 +59,10 @@ export interface SetupDebitResponse {
   success?: boolean;
   status?: boolean | string;
   authorization_url?: string;
+  data?: {
+    authorization_url?: string;
+    [key: string]: any;
+  };
   message?: string;
 }
 

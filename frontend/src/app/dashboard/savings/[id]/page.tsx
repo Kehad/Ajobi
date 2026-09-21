@@ -86,7 +86,8 @@ export default function SavingsGoalDetailPage() {
     );
   }
 
-  const progress = goal.target_amount > 0 ? (goal?.locked_balance / goal.target_amount) * 100 : 0;
+  const currentLocked = goal?.locked_balance ?? goal?.current_amount ?? 0;
+  const progress = goal.target_amount > 0 ? (currentLocked / goal.target_amount) * 100 : 0;
   const isPendingDebit = goal.status === "pending_debit_setup";
   const isBroken = goal.status === "broken";
   const isCompleted = goal.status === "completed";
