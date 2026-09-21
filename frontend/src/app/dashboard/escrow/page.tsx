@@ -1,16 +1,41 @@
 "use client";
 
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Plus, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEscrows } from './model/useEscrows';
 import EscrowCard from './parts/EscrowCard';
 import EscrowFilters from './parts/EscrowFilters';
+import TopRightAlert from '@/components/ui/TopRightAlert';
 
 export default function EscrowPage() {
   const { escrows, isLoading, activeFilter, setActiveFilter, searchQuery, setSearchQuery } = useEscrows();
+  const searchParams = useSearchParams();
+  const actionParam = searchParams?.get('action');
+  const [alertInfo, setAlertInfo] = useState<{ title: string; description: string } | null>(null);
+
+  useEffect(() => {
+    if (actionParam === 'created') {
+      setAlertInfo({
+        title: "Escrow Created Successfully!",
+        description: "Your protected transaction has been created and secured. Counterparty details and virtual account are initialized below."
+      });
+    }
+  }, [actionParam]);
 
   return (
     <div className="space-y-8 pb-12">
+      {alertInfo && (
+        <TopRightAlert
+          title={alertInfo.title}
+          description={alertInfo.description}
+          variant="success"
+          durationMs={10000}
+          onClose={() => setAlertInfo(null)}
+        />
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">

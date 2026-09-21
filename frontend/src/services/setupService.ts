@@ -90,23 +90,19 @@ export const setupService = {
   },
   submitStep5: async (data: { language: string; profile_photo?: File | null | string; email?: string }): Promise<SetupFinalResponse> => {
     let payload: any = data;
-    let headers = {};
     if (data.profile_photo instanceof File) {
       const formData = new FormData();
       formData.append('language', data.language);
-      formData.append('profile_photo', data.profile_photo);
+      formData.append('profile_photo', data.profile_photo, data.profile_photo.name);
+      formData.append('profile_image', data.profile_photo, data.profile_photo.name);
       if (data.email) formData.append('email', data.email);
       payload = formData;
-      headers = { 'Content-Type': 'multipart/form-data' };
     }
-    const response = await apiClient.post<SetupFinalResponse>('/api/onboarding/step5', payload, { headers });
+    const response = await apiClient.post<SetupFinalResponse>('/api/onboarding/step5', payload);
     return response.data;
   },
   uploadBankStatement: async (payload: FormData | { bank_statement?: any; email?: string }): Promise<BankStatementUploadResponse> => {
-    const isFormData = payload instanceof FormData;
-    const response = await apiClient.post<BankStatementUploadResponse>('/api/bank-statement/status', payload, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {}
-    });
+    const response = await apiClient.post<BankStatementUploadResponse>('/api/bank-statement/status', payload);
     return response.data;
   },
   getBankStatementStatus: async (email?: string): Promise<BankStatementStatusResponse> => {

@@ -3,7 +3,6 @@ import { apiClient } from './apiClient';
 export interface CreateEscrowPayload {
   creator_id?: string | number;
   type?: string;
-  counterparty_id?: string | number;
   recipient_user_id?: string;
   amount: number;
   description: string;

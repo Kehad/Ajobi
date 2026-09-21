@@ -79,10 +79,7 @@ export const scoreService = {
   },
 
   uploadBankStatement: async (formData: FormData | { email?: string }) => {
-    const isFormData = formData instanceof FormData;
-    const response = await apiClient.post(`/api/bank-statement/status`, formData, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
-    });
+    const response = await apiClient.post(`/api/bank-statement/status`, formData);
     return response.data;
   },
 
