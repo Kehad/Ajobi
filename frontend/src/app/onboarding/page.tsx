@@ -218,7 +218,7 @@ export default function OnboardingPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-[#00BA75] hover:bg-ajobi-green transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full flex cursor-pointer justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-[#00BA75] hover:bg-ajobi-green transition-all disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>

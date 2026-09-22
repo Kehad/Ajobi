@@ -12,7 +12,7 @@ export const useCreateEscrow = () => {
 
   const [formData, setFormData] = useState<Omit<CreateEscrowPayload, 'creator_id'>>({
     type: 'Purchase',
-    counterparty_id: '',
+    recipient_user_id: '',
     amount: 0,
     description: '',
     expected_completion_date: '',
@@ -44,8 +44,8 @@ export const useCreateEscrow = () => {
           console.error('Failed to generate escrow virtual account', vaError);
         }
         
-        // Redirect to the new escrow details or list
-        router.push('/dashboard/escrow');
+        // Redirect to the new escrow details or list with action=created notification
+        router.push('/dashboard/escrow?action=created');
       }
     } catch (err: any) {
       console.error('Escrow creation failed', err);

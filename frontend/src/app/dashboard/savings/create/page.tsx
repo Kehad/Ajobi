@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { savingsService } from "@/services/savingsService";
-import { ArrowLeft, Plus } from "lucide-react";
+import { useSavings } from "../model/useSavings";
+import { ArrowLeft, Plus, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function CreateSavingsGoalPage() {
   const router = useRouter();
+  const { createGoal, isCreating: loading, createError } = useSavings();
   const [formData, setFormData] = useState({
     name: "",
     target_amount: "",
     deadline: "",
     frequency: "monthly"
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -23,31 +23,31 @@ export default function CreateSavingsGoalPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
     try {
       const payload = {
         name: formData.name,
-        target_amount: parseFloat(formData.target_amount),
+        target_amount: formData.target_amount,
         deadline: formData.deadline,
         frequency: formData.frequency
       };
       
-      const response = await savingsService.createGoal(payload);
-      if (response.success || response.status) {
+      const response = await createGoal(payload);
+      console.log('create goal response in page.tsx id', response)
+      if (response.success || response?.status) {
         router.push("/dashboard/savings");
       } else {
         setError(response.message || "Failed to create savings goal");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred");
-    } finally {
-      setLoading(false);
+      console.log('err', err)
+      setError(err.message || err || "An error occurredss");
     }
   };
 
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <Link href="/dashboard/savings" className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors shadow-sm">
           <ArrowLeft className="w-5 h-5" />
@@ -56,9 +56,9 @@ export default function CreateSavingsGoalPage() {
       </div>
 
       <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
-        {error && (
+        {(error || createError) && (
           <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
-            {error}
+            {error || createError}
           </div>
         )}
 
@@ -123,7 +123,12 @@ export default function CreateSavingsGoalPage() {
             disabled={loading}
             className="w-full h-14 bg-ajobi-green hover:bg-ajobi-green-dark text-white rounded-xl font-bold transition-all shadow-[0_4px_16px_rgba(6,107,68,0.2)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? "Creating..." : (
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Creating Goal...
+              </>
+            ) : (
               <>
                 <Plus className="w-5 h-5" />
                 Create Goal

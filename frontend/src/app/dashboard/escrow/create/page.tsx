@@ -3,12 +3,22 @@
 import { ArrowLeft, ShieldCheck, User, CreditCard, Calendar, FileText, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCreateEscrow } from '../model/useCreateEscrow';
+import TopRightAlert from '@/components/ui/TopRightAlert';
 
 export default function CreateEscrowPage() {
   const { formData, updateField, isLoading, error, handleSubmit } = useCreateEscrow();
 
   return (
     <div className="mx-auto space-y-8 pb-12">
+      {error && (
+        <TopRightAlert
+          title="Escrow Creation Error"
+          description={error}
+          variant="destructive"
+          durationMs={10000}
+        />
+      )}
+      
       {/* Header */}
       <div className="space-y-4">
         <Link href="/dashboard/escrow" className="inline-flex items-center gap-2 text-[13px] font-bold text-gray-400 hover:text-[#066B44] transition-colors">
@@ -64,8 +74,8 @@ export default function CreateEscrowPage() {
                 type="text"
                 className="w-full pl-11 pr-4 py-3.5 bg-[#F1F6F3] rounded-2xl text-[14px] font-medium focus:outline-none focus:ring-2 focus:ring-[#066B44]/10 transition-all"
                 placeholder="e.g. USR-123456"
-                value={formData.counterparty_id}
-                onChange={(e) => updateField('counterparty_id', e.target.value)}
+                value={formData.recipient_user_id}
+                onChange={(e) => updateField('recipient_user_id', e.target.value)}
               />
             </div>
           </div>

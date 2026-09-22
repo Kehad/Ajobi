@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { savingsService } from "@/services/savingsService";
-import { ArrowLeft, Target, AlertCircle, Calendar, RefreshCw, CreditCard, CheckCircle2 } from "lucide-react";
+import { useSavings } from "../model/useSavings";
+import { ArrowLeft, Target, AlertCircle, Calendar, RefreshCw, CreditCard, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SavingsGoalDetailPage() {
@@ -11,60 +11,50 @@ export default function SavingsGoalDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   
-  const [goal, setGoal] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { 
+    fetchGoalDetail, 
+    currentGoalDetail, 
+    setupDebit, 
+    breakGoal, 
+    isLoading: loading,
+    isSettingUpDebit,
+    isBreaking
+  } = useSavings();
+
   const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
-      fetchGoal();
+      fetchGoalDetail(id).catch((err: any) => setError(err || "Failed to load goal detail"));
     }
-  }, [id]);
+  }, [id, fetchGoalDetail]);
 
-  const fetchGoal = async () => {
-    try {
-      setLoading(true);
-      const response = await savingsService.getGoalDetail(id);
-      if (response.success || response.status) {
-        setGoal(response.data);
-      } else {
-        setError(response.message || "Failed to fetch goal");
-      }
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const goal = currentGoalDetail?.goal;
+  const actionLoading = isSettingUpDebit || isBreaking;
 
-  const handleSetupDebit = async () => {
+  const handleSetupDebitMandate = async () => {
     try {
-      setActionLoading(true);
-      const response = await savingsService.setupDebit(id);
+      const response = await setupDebit();
       if (response.success || response.status) {
-        // Might return authorization URL for Paystack
-        if (response.data?.authorization_url) {
-          window.location.href = response.data.authorization_url;
+        const authUrl = response.authorization_url || response?.data?.authorization_url;
+        if (authUrl) {
+          window.location.href = authUrl;
         } else {
-          fetchGoal(); // Refresh to update status
+          fetchGoalDetail(id);
         }
       } else {
         alert(response.message || "Failed to setup debit");
       }
     } catch (err: any) {
-      alert(err.message || "An error occurred");
-    } finally {
-      setActionLoading(false);
+      alert(err.message || err || "An error occurred");
     }
   };
 
-  const handleBreakGoal = async () => {
+  const handleBreakSavingsGoal = async () => {
     if (!window.confirm("Are you sure you want to break this goal? This will incur an AjoScore penalty of -3 points.")) return;
     
     try {
-      setActionLoading(true);
-      const response = await savingsService.breakGoal(id);
+      const response = await breakGoal(id);
       if (response.success || response.status) {
         alert("Goal broken successfully. Funds have been released.");
         router.push("/dashboard/savings");
@@ -72,14 +62,18 @@ export default function SavingsGoalDetailPage() {
         alert(response.message || "Failed to break goal");
       }
     } catch (err: any) {
-      alert(err.message || "An error occurred");
-    } finally {
-      setActionLoading(false);
+      alert(err.message || err || "An error occurred");
     }
   };
 
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ajobi-green"></div></div>;
+    return (
+      <div className="min-h-[350px] flex flex-col items-center justify-center gap-3 bg-white rounded-2xl border border-gray-100 p-12 shadow-sm text-center">
+        <Loader2 className="w-10 h-10 text-ajobi-green animate-spin" />
+        <p className="text-sm font-medium text-gray-500">Loading goal details...</p>
+      </div>
+    );
   }
 
   if (error || !goal) {
@@ -92,13 +86,14 @@ export default function SavingsGoalDetailPage() {
     );
   }
 
-  const progress = goal.target_amount > 0 ? (goal.locked_balance / goal.target_amount) * 100 : 0;
+  const currentLocked = goal?.locked_balance ?? goal?.current_amount ?? 0;
+  const progress = goal.target_amount > 0 ? (currentLocked / goal.target_amount) * 100 : 0;
   const isPendingDebit = goal.status === "pending_debit_setup";
   const isBroken = goal.status === "broken";
   const isCompleted = goal.status === "completed";
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/savings" className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors shadow-sm">
@@ -112,11 +107,18 @@ export default function SavingsGoalDetailPage() {
         
         {goal.status === 'active' && (
           <button 
-            onClick={handleBreakGoal}
+            onClick={handleBreakSavingsGoal}
             disabled={actionLoading}
-            className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium text-sm transition-colors"
+            className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 disabled:opacity-50"
           >
-            Break Goal
+            {isBreaking ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                Breaking...
+              </>
+            ) : (
+              "Break Goal"
+            )}
           </button>
         )}
       </div>
@@ -182,12 +184,21 @@ export default function SavingsGoalDetailPage() {
                   To activate this goal, please setup an automated direct debit mandate. This allows us to deduct the instalment on schedule securely.
                 </p>
                 <button
-                  onClick={handleSetupDebit}
+                  onClick={handleSetupDebitMandate}
                   disabled={actionLoading}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl font-bold transition-colors text-sm shadow-sm flex items-center gap-2"
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-xl font-bold transition-colors text-sm shadow-sm flex items-center gap-2 disabled:opacity-50"
                 >
-                  <CreditCard className="w-4 h-4" />
-                  {actionLoading ? "Processing..." : "Setup Mandate Now"}
+                  {isSettingUpDebit ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      Setting up mandate...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      Setup Mandate Now
+                    </>
+                  )}
                 </button>
               </div>
             </div>
