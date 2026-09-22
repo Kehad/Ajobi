@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useGroupDetails } from "./model/useGroupDetails";
@@ -14,7 +14,7 @@ import TrustLevel from "./parts/TrustLevel";
 import TopRightAlert from "@/components/ui/TopRightAlert";
 import WithdrawalModal from "./parts/WithdrawalModal";
 
-export default function GroupDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+function GroupDetailsContent({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const searchParams = useSearchParams();
@@ -157,5 +157,18 @@ export default function GroupDetailsPage({ params }: { params: Promise<{ id: str
       </div>
 
     </div>
+  );
+}
+
+export default function GroupDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={
+      <div className="w-full h-[60vh] flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-[#066B44] animate-spin mb-4" />
+        <p className="text-[14px] font-bold text-gray-500">Loading group analytics...</p>
+      </div>
+    }>
+      <GroupDetailsContent params={params} />
+    </Suspense>
   );
 }

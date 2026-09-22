@@ -28,7 +28,10 @@ export const useEscrows = () => {
 
   useEffect(() => {
     const fetchEscrows = async () => {
-      if (!userId) return;
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const response = await escrowService.getUserEscrows(userId, {
