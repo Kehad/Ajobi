@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import EscrowCard from './parts/EscrowCard';
 import EscrowFilters from './parts/EscrowFilters';
 import TopRightAlert from '@/components/ui/TopRightAlert';
 
-export default function EscrowPage() {
+function EscrowContent() {
   const { escrows, isLoading, activeFilter, setActiveFilter, searchQuery, setSearchQuery } = useEscrows();
   const searchParams = useSearchParams();
   const actionParam = searchParams?.get('action');
@@ -123,5 +123,18 @@ export default function EscrowPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function EscrowPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full h-64 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-[#066B44] animate-spin mb-4" />
+        <p className="text-gray-500 font-bold">Loading escrows...</p>
+      </div>
+    }>
+      <EscrowContent />
+    </Suspense>
   );
 }
